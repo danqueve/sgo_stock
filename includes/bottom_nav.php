@@ -38,6 +38,12 @@ $currentPath = $_SERVER['PHP_SELF'];
         <span>Usuarios</span>
     </a>
 
+    <a href="<?= APP_URL ?>/admin/categorias.php"
+       class="bottom-nav__item <?= strpos($currentPath, 'admin/categorias') !== false ? 'active' : '' ?>">
+        <i class="bi bi-tags-fill"></i>
+        <span>Categorías</span>
+    </a>
+
     <a href="<?= APP_URL ?>/reportes/index.php"
        class="bottom-nav__item <?= strpos($currentPath, 'reportes') !== false ? 'active' : '' ?>">
         <i class="bi bi-bar-chart-line"></i>
