@@ -1,0 +1,95 @@
+<?php
+// ============================================================
+// config/app.php — Configuración global de la aplicación
+// ============================================================
+
+define('APP_NAME',    'Imperio Comercial');
+define('APP_VERSION', '1.0.0');
+define('APP_URL',     'http://localhost/sgo');
+define('APP_ENV',     'development'); // 'production' en producción
+
+// Zona horaria Argentina
+date_default_timezone_set('America/Argentina/Buenos_Aires');
+
+// Sesión segura
+ini_set('session.cookie_httponly', 1);
+ini_set('session.use_only_cookies', 1);
+if (APP_ENV === 'production') {
+    ini_set('session.cookie_secure', 1);
+}
+session_start();
+
+// Helpers de autenticación
+function isLoggedIn(): bool {
+    return isset($_SESSION['user_id']);
+}
+
+function requireLogin(): void {
+    if (!isLoggedIn()) {
+        header('Location: ' . APP_URL . '/login.php');
+        exit;
+    }
+}
+
+function requireAdmin(): void {
+    requireLogin();
+    if ($_SESSION['user_rol'] !== 'admin') {
+        header('Location: ' . APP_URL . '/index.php?err=forbidden');
+        exit;
+    }
+}
+
+function currentUser(): array {
+    return [
+        'id'       => $_SESSION['user_id']       ?? null,
+        'usuario'  => $_SESSION['user_usuario']  ?? '',
+        'nombre'   => $_SESSION['user_nombre']   ?? '',
+        'apellido' => $_SESSION['user_apellido'] ?? '',
+        'rol'      => $_SESSION['user_rol']      ?? '',
+    ];
+}
+
+// CSRF helpers
+function csrfToken(): string {
+    if (empty($_SESSION['csrf_token'])) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    }
+    return $_SESSION['csrf_token'];
+}
+
+function verifyCsrf(string $token): bool {
+    return isset($_SESSION['csrf_token'])
+        && hash_equals($_SESSION['csrf_token'], $token);
+}
+
+// Formato moneda Argentina
+function formatPesos(float $amount): string {
+    return '$' . number_format($amount, 2, ',', '.');
+}
+
+/**
+ * Formatea un número grande en formato corto (K, M)
+ */
+function formatShortNumber(float $amount): string {
+    if ($amount >= 1000000) {
+        return '$' . round($amount / 1000000, 1) . 'M';
+    }
+    if ($amount >= 1000) {
+        return '$' . round($amount / 1000, 1) . 'K';
+    }
+    return formatPesos($amount);
+}
+
+// Flash messages
+function setFlash(string $type, string $msg): void {
+    $_SESSION['flash'] = ['type' => $type, 'msg' => $msg];
+}
+
+function getFlash(): ?array {
+    if (isset($_SESSION['flash'])) {
+        $flash = $_SESSION['flash'];
+        unset($_SESSION['flash']);
+        return $flash;
+    }
+    return null;
+}

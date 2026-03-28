@@ -1,0 +1,586 @@
+/* ============================================================
+   Imperio Comercial — App CSS  |  Mobile-First
+   ============================================================ */
+
+/* ── Variables de diseño (Apple-Style) ─────────────────── */
+:root {
+    --ic-primary: #1d1d1f;
+    --ic-accent: #0071e3;
+    --ic-success: #34c759;
+    --ic-danger: #ff3b30;
+    --ic-warning: #ff9f0a;
+    --ic-surface: #ffffff;
+    --ic-bg: #f5f5f7;
+    --ic-text: #1d1d1f;
+    --ic-text-muted: #86868b;
+    --ic-border: #d2d2d7;
+    --ic-radius: 22px;
+    --ic-radius-sm: 12px;
+    --ic-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    --ic-shadow-lg: 0 10px 35px rgba(0, 0, 0, 0.08);
+    --ic-glass: rgba(255, 255, 255, 0.72);
+    --ic-blur: 20px;
+
+    /* Bottom nav altura + safe-area */
+    --bottom-nav-h: 68px;
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-top: env(safe-area-inset-top, 0px);
+}
+
+/* ── Reset / Base ─────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+body {
+    background-color: var(--ic-bg);
+    color: var(--ic-text);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    letter-spacing: -0.015em;
+    overscroll-behavior-y: none;
+}
+
+/* Evitar zoom en inputs en iOS */
+input,
+select,
+textarea {
+    font-size: 16px !important;
+}
+
+/* ── Contenedor Principal ──────────────────────────────────── */
+.container-mobile {
+    max-width: 500px;
+    margin: 0 auto;
+    padding-bottom: 2rem;
+}
+
+/* ── Top Bar ──────────────────────────────────────────────── */
+.app-topbar {
+    background-color: var(--ic-glass);
+    backdrop-filter: blur(var(--ic-blur));
+    -webkit-backdrop-filter: blur(var(--ic-blur));
+    padding-top: var(--safe-top);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    position: sticky;
+    top: 0;
+    z-index: 1030;
+}
+
+.app-brand {
+    font-size: 1.15rem;
+    color: var(--ic-text);
+}
+
+.app-brand i {
+    color: var(--ic-accent) !important;
+}
+
+.app-topbar__title {
+    color: var(--ic-text-muted) !important;
+}
+
+/* ── Bottom Navigation ────────────────────────────────────── */
+.bottom-nav {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    right: 20px;
+    z-index: 1040;
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    background: var(--ic-glass);
+    backdrop-filter: blur(var(--ic-blur));
+    -webkit-backdrop-filter: blur(var(--ic-blur));
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    border-radius: 30px;
+    padding-bottom: 0;
+    box-shadow: var(--ic-shadow-lg);
+    min-height: var(--bottom-nav-h);
+}
+
+.bottom-nav__item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    min-height: var(--bottom-nav-h);
+    /* Touch target ≥ 44px */
+    min-width: 44px;
+    color: var(--ic-text-muted);
+    text-decoration: none;
+    font-size: .65rem;
+    gap: 3px;
+    transition: color .2s ease;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+}
+
+.bottom-nav__item i {
+    font-size: 1.35rem;
+    line-height: 1;
+}
+
+.bottom-nav__item.active {
+    color: var(--ic-accent);
+}
+
+.bottom-nav__item:active {
+    opacity: .7;
+    transform: scale(.95);
+}
+
+/* Botón CTA central (Nueva Venta) */
+.bottom-nav__item--cta {
+    position: relative;
+    color: var(--ic-text-muted);
+}
+
+.bottom-nav__cta-btn {
+    width: 52px;
+    height: 52px;
+    background: linear-gradient(135deg, var(--ic-accent), #2489eb);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 16px rgba(245, 166, 35, .45);
+    margin-top: -18px;
+    transition: transform .15s ease, box-shadow .15s ease;
+}
+
+.bottom-nav__item--cta:active .bottom-nav__cta-btn {
+    transform: scale(.9);
+    box-shadow: 0 2px 8px rgba(245, 166, 35, .3);
+}
+
+.bottom-nav__cta-btn i {
+    font-size: 1.5rem;
+    color: #fff;
+}
+
+/* Spacer que empuja el contenido sobre el bottom nav (Fijo para floating bar) */
+.bottom-nav-spacer {
+    height: calc(var(--bottom-nav-h) + var(--safe-bottom) + 50px);
+}
+
+/* ── Cards de Artículo ────────────────────────────────────── */
+.article-card {
+    background: var(--ic-surface);
+    border-radius: var(--ic-radius);
+    box-shadow: var(--ic-shadow);
+    border: 1px solid rgba(0, 0, 0, 0.03);
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+}
+
+.article-card:active {
+    transform: scale(0.96);
+    box-shadow: var(--ic-shadow-lg);
+}
+
+.article-card__img {
+    width: 100%;
+    height: 160px;
+    object-fit: cover;
+    background: #fdfdfd;
+}
+
+.article-card__img-placeholder {
+    width: 100%;
+    height: 140px;
+    background: linear-gradient(135deg, #e9ecef, #dee2e6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3rem;
+    color: #adb5bd;
+}
+
+.article-card__body {
+    padding: .85rem;
+}
+
+.article-card__name {
+    font-weight: 600;
+    font-size: .95rem;
+    margin-bottom: .4rem;
+    line-height: 1.3;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    color: var(--ic-text);
+}
+
+.article-card__price-contado {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--ic-success);
+}
+
+.article-card__price-cuota {
+    font-size: .8rem;
+    color: var(--ic-text-muted);
+}
+
+.article-card__stock-badge {
+    font-size: .7rem;
+    padding: .2rem .5rem;
+    border-radius: 6px;
+}
+
+/* ── Formulario de Venta ──────────────────────────────────── */
+.venta-form {
+    background: var(--ic-surface);
+    border-radius: var(--ic-radius) var(--ic-radius) 0 0;
+}
+
+/* Inputs táctiles Apple-style */
+.form-control-touch,
+.form-select-touch {
+    min-height: 52px;
+    border-radius: var(--ic-radius-sm);
+    border: none;
+    padding: .65rem 1.25rem;
+    transition: all .2s ease;
+    background-color: #f2f2f7;
+    color: var(--ic-text);
+}
+
+.form-control-touch:focus,
+.form-select-touch:focus {
+    background-color: #fff;
+    box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.15);
+    outline: none;
+}
+
+.form-control-touch.is-valid {
+    border-color: var(--ic-success);
+}
+
+.form-control-touch.is-invalid {
+    border-color: var(--ic-danger);
+}
+
+/* Labels flotantes del formulario */
+.form-floating-touch label {
+    padding: .8rem 1rem;
+    color: var(--ic-text-muted);
+}
+
+/* Sección de artículo seleccionado */
+.selected-article-card {
+    background: linear-gradient(135deg, #f0fff4, #e8f5e9);
+    border: 2px solid #c8e6c9;
+    border-radius: var(--ic-radius-sm);
+    padding: 1rem;
+}
+
+/* Botón CTA de venta */
+.btn-venta {
+    background: linear-gradient(135deg, var(--ic-accent), #2489eb);
+    color: #fff;
+    border: none;
+    border-radius: var(--ic-radius-sm);
+    min-height: 54px;
+    font-size: 1.05rem;
+    font-weight: 600;
+    width: 100%;
+    box-shadow: 0 4px 16px rgba(0, 113, 227, 0.25);
+    transition: transform .15s, box-shadow .15s;
+    touch-action: manipulation;
+}
+
+.btn-venta:active {
+    transform: scale(.97);
+    box-shadow: 0 2px 8px rgba(245, 166, 35, .3);
+    color: #fff;
+}
+
+.btn-venta:disabled {
+    opacity: .6;
+    transform: none;
+}
+
+/* ── Skeleton Loader (Lazy Loading) ──────────────────────── */
+.skeleton {
+    background: linear-gradient(90deg, #e9ecef 25%, #f8f9fa 50%, #e9ecef 75%);
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.4s infinite;
+    border-radius: var(--ic-radius-sm);
+}
+
+@keyframes skeleton-shimmer {
+    0% {
+        background-position: 200% 0;
+    }
+
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+.skeleton-card {
+    height: 240px;
+    border-radius: var(--ic-radius);
+}
+
+/* ── Badges de stock ──────────────────────────────────────── */
+.stock-ok {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.stock-low {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.stock-empty {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+/* ── Dashboard Stats Cards ────────────────────────────────── */
+.stat-card {
+    background: var(--ic-surface);
+    border-radius: var(--ic-radius);
+    padding: 1.5rem;
+    box-shadow: var(--ic-shadow);
+    border: 1px solid rgba(0, 0, 0, 0.02);
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    transition: transform 0.2s ease;
+}
+
+.stat-card:active {
+    transform: scale(0.98);
+}
+
+.stat-card__icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.stat-card__value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 1;
+    margin-bottom: .15rem;
+}
+
+.stat-card__label {
+    font-size: .75rem;
+    color: var(--ic-text-muted);
+    text-transform: uppercase;
+    letter-spacing: .05em;
+}
+
+/* ── Section title ────────────────────────────────────────── */
+.section-title {
+    font-size: .75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--ic-text-muted);
+    margin-bottom: 1rem;
+    padding: 0 .5rem;
+}
+
+/* ── Tipo de pago toggle ──────────────────────────────────── */
+.pago-toggle {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: .5rem;
+}
+
+.pago-toggle .btn-check+label {
+    border: 2px solid var(--ic-border);
+    border-radius: var(--ic-radius-sm);
+    padding: .75rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all .2s ease;
+    font-weight: 500;
+    min-height: 54px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: .4rem;
+    background: #fafafa;
+}
+
+.pago-toggle .btn-check:checked+label {
+    border-color: var(--ic-accent);
+    background: #fff8ee;
+    color: #b8750a;
+    box-shadow: 0 0 0 3px rgba(245, 166, 35, .15);
+}
+
+/* ── Botón Confirmar Venta — Estado Countdown ──────────────── */
+.btn-confirming {
+    background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+    animation: pulse-confirm 1s infinite;
+}
+
+@keyframes pulse-confirm {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.85; }
+}
+
+/* ── Login page (iPhone Style) ────────────────────────────── */
+.login-page {
+    min-height: 100dvh;
+    background: #f0f7ff;
+    background-image:
+        radial-gradient(at 0% 0%, rgba(186, 230, 253, 0.4) 0px, transparent 50%),
+        radial-gradient(at 50% 0%, rgba(125, 211, 252, 0.3) 0px, transparent 50%),
+        radial-gradient(at 100% 0%, rgba(224, 242, 254, 0.5) 0px, transparent 50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1.25rem;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Animación de aura iOS */
+.login-page::before {
+    content: "";
+    position: absolute;
+    width: 200%;
+    height: 200%;
+    top: -50%;
+    left: -50%;
+    background: radial-gradient(circle, rgba(14, 165, 233, 0.08) 0%, transparent 70%);
+    animation: aura-move 15s infinite alternate ease-in-out;
+    z-index: 0;
+}
+
+@keyframes aura-move {
+    0% { transform: translate(0, 0) rotate(0deg); }
+    100% { transform: translate(10%, 10%) rotate(15deg); }
+}
+
+.login-card {
+    position: relative;
+    z-index: 1;
+    background: rgba(255, 255, 255, 0.65);
+    backdrop-filter: blur(35px) saturate(180%);
+    -webkit-backdrop-filter: blur(35px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    border-radius: 35px; /* Más redondo estilo iPhone */
+    padding: 2.8rem 2.2rem;
+    width: 100%;
+    max-width: 380px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.08);
+}
+
+/* iOS Grouped Inputs */
+.ios-input-group {
+    background: rgba(0, 0, 0, 0.03);
+    border-radius: 18px;
+    overflow: hidden;
+    margin-bottom: 2rem;
+}
+
+.ios-input-item {
+    position: relative;
+    padding: 0 1rem;
+}
+
+.ios-input-item:not(:last-child)::after {
+    content: "";
+    position: absolute;
+    left: 1rem;
+    right: 0;
+    bottom: 0;
+    height: 1px;
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.ios-input-group input {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 1.1rem 0.5rem !important;
+    font-size: 1.05rem !important;
+    color: #000;
+}
+
+/* Botón iPhone */
+.btn-iphone {
+    background: var(--ic-accent);
+    color: #fff;
+    border: none;
+    border-radius: 18px;
+    min-height: 56px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    width: 100%;
+    transition: all .2s ease;
+    box-shadow: 0 8px 16px rgba(0, 113, 227, 0.2);
+}
+
+.btn-iphone:active {
+    transform: scale(0.96);
+    opacity: 0.9;
+}
+
+
+/* ── Utility classes extra ────────────────────────────────── */
+.gap-touch {
+    gap: .75rem;
+}
+
+/* Scroll horizontal sin scrollbar visual (chips/filtros) */
+.scroll-x-touch {
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x mandatory;
+}
+
+.scroll-x-touch::-webkit-scrollbar {
+    display: none;
+}
+
+.scroll-x-touch>* {
+    scroll-snap-align: start;
+}
+
+/* ── Responsive (md+): ocultar bottom nav, mostrar sidebar ── */
+@media (min-width: 768px) {
+    body {
+        padding-left: 220px;
+    }
+
+    .app-sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        width: 220px;
+        background: var(--ic-primary);
+        padding-top: var(--safe-top);
+        overflow-y: auto;
+        z-index: 1020;
+    }
+}

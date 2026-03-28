@@ -1,0 +1,63 @@
+{
+  "name": "Imperio Comercial",
+  "short_name": "Imperio",
+  "description": "Sistema de Ventas y Stock Mobile-First",
+  "start_url": "/sgo/index.php",
+  "scope": "/sgo/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "theme_color": "#f5f5f7",
+  "background_color": "#f5f5f7",
+  "lang": "es-AR",
+  "categories": ["business", "productivity"],
+  "icons": [
+    {
+      "src": "/sgo/assets/icons/icon-72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/sgo/assets/icons/icon-96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/sgo/assets/icons/icon-128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/sgo/assets/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/sgo/assets/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Nueva Venta",
+      "short_name": "Vender",
+      "description": "Registrar una venta rápida",
+      "url": "/sgo/ventas/nueva.php",
+      "icons": [{ "src": "/sgo/assets/icons/icon-96.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Ver Stock",
+      "short_name": "Stock",
+      "description": "Consultar el inventario",
+      "url": "/sgo/stock/index.php",
+      "icons": [{ "src": "/sgo/assets/icons/icon-96.png", "sizes": "96x96" }]
+    }
+  ],
+  "screenshots": [],
+  "prefer_related_applications": false
+}

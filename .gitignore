@@ -1,0 +1,12 @@
+# Local storage
+.agents/
+.claude/
+.gemini/
+
+# PHP related
+*.log
+vendor/
+
+# OS files
+Thumbs.db
+.DS_Store
