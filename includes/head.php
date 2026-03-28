@@ -17,6 +17,9 @@
     <!-- PWA Manifest -->
     <link rel="manifest" href="<?= APP_URL ?>/manifest.json">
 
+    <!-- Favicon -->
+    <link rel="icon" type="image/jpeg" href="<?= APP_URL ?>/assets/icons/logo.jpg">
+
     <!-- Bootstrap 5.3 CSS -->
     <link rel="stylesheet"
           href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"

@@ -121,23 +121,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </button>
         </form>
 
-        <!-- Accesos de demo -->
-        <hr class="my-4 opacity-10">
-        <p class="text-muted small text-center mb-3">Accesos de prueba</p>
-        <div class="row g-2">
-            <div class="col-6">
-                <button class="btn btn-light w-100 py-2 border small"
-                        onclick="fillDemo('admin')">
-                    <i class="bi bi-shield-check me-1"></i>Admin
-                </button>
-            </div>
-            <div class="col-6">
-                <button class="btn btn-light w-100 py-2 border small"
-                        onclick="fillDemo('vendedor')">
-                    <i class="bi bi-person-badge me-1"></i>Vendedor
-                </button>
-            </div>
-        </div>
     </div>
 
     <!-- PWA install button -->
@@ -163,10 +146,6 @@ function togglePassword() {
     }
 }
 
-function fillDemo(usuario) {
-    document.getElementById('usuario').value  = usuario;
-    document.getElementById('password').value = 'password';
-}
 
 // Animación de entrada estilo iOS
 document.addEventListener('DOMContentLoaded', () => {
