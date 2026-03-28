@@ -12,6 +12,8 @@
     <!-- AnimeJS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.2/anime.min.js"></script>
 
+    <script>window.APP_URL = '<?= APP_URL ?>';</script>
+
     <title><?= htmlspecialchars($pageTitle ?? APP_NAME) ?></title>
 
     <!-- PWA Manifest -->

@@ -5,13 +5,13 @@
 
 const CACHE_NAME    = 'imperio-v1.0.2';
 const DATA_CACHE    = 'imperio-data-v1.0.2';
-const OFFLINE_URL   = '/sgo/offline.php';
+const OFFLINE_URL   = 'offline.php';
 
 // Assets estáticos a cachear en la instalación
 const STATIC_ASSETS = [
-    '/sgo/offline.php',
-    '/sgo/assets/css/app.css',
-    '/sgo/assets/js/app.js',
+    'offline.php',
+    'assets/css/app.css',
+    'assets/js/app.js',
     'https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css',
     'https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js',
     'https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css',

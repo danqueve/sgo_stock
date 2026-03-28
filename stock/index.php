@@ -154,10 +154,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const card = e.target.closest('.article-card');
         if (!card) return;
         const id = card.dataset.id;
+        const baseUrl = '<?= APP_URL ?>';
         <?php if ($user['rol'] === 'admin'): ?>
-        window.location.href = `/sgo/stock/editar.php?id=${id}`;
+        window.location.href = `${baseUrl}/stock/editar.php?id=${id}`;
         <?php else: ?>
-        window.location.href = `/sgo/ventas/nueva.php?articulo_id=${id}`;
+        window.location.href = `${baseUrl}/ventas/nueva.php?articulo_id=${id}`;
         <?php endif; ?>
     });
 });

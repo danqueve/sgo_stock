@@ -8,7 +8,7 @@
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
         navigator.serviceWorker
-            .register('/sgo/sw.js', { scope: '/sgo/' })
+            .register(`${window.APP_URL}/sw.js`, { scope: `${window.APP_URL}/` })
             .then(reg => {
                 console.log('[SW] Registrado, scope:', reg.scope);
                 // Escuchar actualizaciones
@@ -68,7 +68,7 @@ document.addEventListener('click', e => {
 /* ── Lazy Loading del Stock con IntersectionObserver ────────── */
 class StockLazyLoader {
     constructor(options = {}) {
-        this.endpoint      = options.endpoint    || '/sgo/api/articulos.php';
+        this.endpoint      = options.endpoint    || `${window.APP_URL}/api/articulos.php`;
         this.container     = document.getElementById(options.containerId || 'stock-grid');
         this.sentinel      = document.getElementById(options.sentinelId  || 'stock-sentinel');
         this.skeletonCount = options.skeletonCount || 6;
@@ -311,7 +311,7 @@ function initCuotaCalculator() {
         const cuotas     = parseInt(selCuotas?.value || 1);
         if (!articuloId || !cuotas) return;
 
-        fetch(`/sgo/api/articulos.php?id=${articuloId}&cuotas=${cuotas}`)
+        fetch(`${window.APP_URL}/api/articulos.php?id=${articuloId}&cuotas=${cuotas}`)
             .then(r => r.json())
             .then(data => {
                 if (lblMonto) lblMonto.textContent = data.monto_cuota_fmt;

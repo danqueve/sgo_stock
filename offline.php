@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Sin conexión — Imperio Comercial</title>
-    <link rel="stylesheet" href="/sgo/assets/css/app.css">
+    <link rel="stylesheet" href="assets/css/app.css">
     <style>
         body { min-height: 100dvh; display: flex; align-items: center; justify-content: center;
                background: linear-gradient(160deg, #1a1f36 0%, #2d3561 100%); }
