@@ -19,7 +19,7 @@ if (!$id) {
 $stmtV = $pdo->prepare(
     'SELECT v.id, v.tipo_pago, v.cuotas, v.es_mensual, v.primer_vencimiento,
             v.total, v.estado, v.observaciones, v.created_at,
-            c.nombre, c.apellido, c.celular, c.direccion, c.localidad,
+            c.nombre, c.apellido, c.dni, c.celular, c.direccion, c.localidad,
             p.nombre AS provincia,
             u.nombre AS vendedor
        FROM ventas v
@@ -126,6 +126,11 @@ $estadoBadge = match($venta['estado']) {
             <h2 class="fs-6 fw-bold mb-1">
                 <?= htmlspecialchars($venta['apellido'] . ', ' . $venta['nombre']) ?>
             </h2>
+            <?php if ($venta['dni']): ?>
+            <p class="small text-muted mb-1">
+                <i class="bi bi-person-vcard me-1"></i>DNI <?= htmlspecialchars($venta['dni']) ?>
+            </p>
+            <?php endif; ?>
             <div class="d-flex flex-column gap-1 small text-muted">
                 <span>
                     <i class="bi bi-telephone me-2"></i>

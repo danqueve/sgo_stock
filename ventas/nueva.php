@@ -21,6 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'Token de seguridad inválido. Recargá la página.';
     } else {
         // Sanitizar y validar
+        $dni         = trim($_POST['dni']          ?? '');
         $nombre      = trim($_POST['nombre']      ?? '');
         $apellido    = trim($_POST['apellido']    ?? '');
         $direccion   = trim($_POST['direccion']   ?? '');
@@ -35,6 +36,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $es_mensual         = ($tipo_pago === 'financiado' && isset($_POST['es_mensual'])) ? 1 : 0;
         $primer_vencimiento = trim($_POST['primer_vencimiento'] ?? '');
 
+        if (!$dni) $errors[] = 'El DNI es obligatorio.';
+        elseif (!preg_match('/^\d{7,8}$/', $dni)) $errors[] = 'DNI inválido (7 u 8 dígitos).';
         if (!$nombre)    $errors[] = 'El nombre es obligatorio.';
         if (!$apellido)  $errors[] = 'El apellido es obligatorio.';
         if (!$direccion) $errors[] = 'La dirección es obligatoria.';
@@ -78,11 +81,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     // 1. Insertar cliente
                     $stmtCli = $pdo->prepare(
                         'INSERT INTO clientes
-                            (nombre, apellido, celular, direccion, localidad, provincia_id, observaciones)
-                         VALUES (?, ?, ?, ?, ?, ?, ?)'
+                            (dni, nombre, apellido, celular, direccion, localidad, provincia_id, observaciones)
+                         VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
                     );
                     $stmtCli->execute([
-                        $nombre, $apellido, $celular,
+                        $dni, $nombre, $apellido, $celular,
                         $direccion, $localidad, $provincia, $obs
                     ]);
                     $clienteId = (int)$pdo->lastInsertId();
@@ -324,19 +327,22 @@ $csrfToken = csrfToken();
 
             <div class="venta-form rounded-4 p-3 shadow-sm">
 
-                <!-- Nombre + Apellido en grid de 2 -->
+                <!-- DNI -->
+                <div class="mb-3">
+                    <label for="dni" class="form-label small fw-medium mb-1">DNI *</label>
+                    <input type="text"
+                           id="dni" name="dni"
+                           class="form-control form-control-touch"
+                           placeholder="12345678"
+                           value="<?= htmlspecialchars($_POST['dni'] ?? '') ?>"
+                           inputmode="numeric"
+                           maxlength="8"
+                           required>
+                    <div class="invalid-feedback">DNI requerido (7 u 8 dígitos).</div>
+                </div>
+
+                <!-- Apellido + Nombre en grid de 2 -->
                 <div class="row g-3 mb-3">
-                    <div class="col-6">
-                        <label for="nombre" class="form-label small fw-medium mb-1">Nombre *</label>
-                        <input type="text"
-                               id="nombre" name="nombre"
-                               class="form-control form-control-touch"
-                               placeholder="Juan"
-                               value="<?= htmlspecialchars($_POST['nombre'] ?? '') ?>"
-                               autocomplete="given-name"
-                               required>
-                        <div class="invalid-feedback">Nombre requerido.</div>
-                    </div>
                     <div class="col-6">
                         <label for="apellido" class="form-label small fw-medium mb-1">Apellido *</label>
                         <input type="text"
@@ -347,6 +353,17 @@ $csrfToken = csrfToken();
                                autocomplete="family-name"
                                required>
                         <div class="invalid-feedback">Apellido requerido.</div>
+                    </div>
+                    <div class="col-6">
+                        <label for="nombre" class="form-label small fw-medium mb-1">Nombre *</label>
+                        <input type="text"
+                               id="nombre" name="nombre"
+                               class="form-control form-control-touch"
+                               placeholder="Juan"
+                               value="<?= htmlspecialchars($_POST['nombre'] ?? '') ?>"
+                               autocomplete="given-name"
+                               required>
+                        <div class="invalid-feedback">Nombre requerido.</div>
                     </div>
                 </div>
 
