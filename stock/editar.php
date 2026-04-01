@@ -82,16 +82,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $desc     = trim($_POST['descripcion'] ?? '');
         $catId    = (int)($_POST['categoria_id'] ?? 0);
         $codigo   = trim($_POST['codigo']     ?? '') ?: null;
-        $pC       = str_replace(['.', ','], ['', '.'], $_POST['precio_contado']   ?? '0');
-        $pF       = str_replace(['.', ','], ['', '.'], $_POST['precio_financiado'] ?? '0');
-        $cuotas   = max(1, (int)($_POST['cuotas']      ?? 1));
+        $pC         = str_replace(['.', ','], ['', '.'], $_POST['precio_contado'] ?? '0');
+        $cuotas     = max(1, (int)($_POST['cuotas'] ?? 1));
+        $montoCuota = str_replace(['.', ','], ['', '.'], $_POST['monto_cuota']  ?? '0');
+        $pF         = round($cuotas * (float)$montoCuota, 2);
         $stockMin = max(1, (int)($_POST['stock_minimo'] ?? 1));
         $imgUrl   = trim($_POST['imagen_url'] ?? '') ?: null;
 
-        if (!$nombre)   $errors[] = 'El nombre es obligatorio.';
-        if (!$catId)    $errors[] = 'Seleccioná una categoría.';
-        if ($pC <= 0)   $errors[] = 'Precio contado inválido.';
-        if ($pF <= 0)   $errors[] = 'Precio financiado inválido.';
+        if (!$nombre)         $errors[] = 'El nombre es obligatorio.';
+        if (!$catId)          $errors[] = 'Seleccioná una categoría.';
+        if ($pC <= 0)         $errors[] = 'Precio contado inválido.';
+        if ($montoCuota <= 0) $errors[] = 'El valor de cuota debe ser mayor a 0.';
 
         if (empty($errors)) {
             try {
@@ -122,6 +123,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'precio_contado'   => $pC,
             'precio_financiado'=> $pF,
             'cuotas'           => $cuotas,
+            'monto_cuota_edit' => $montoCuota,
             'stock_minimo'     => $stockMin,
             'imagen_url'       => $imgUrl,
         ]);
@@ -269,49 +271,74 @@ $csrfToken = csrfToken();
                 ><?= htmlspecialchars($art['descripcion'] ?? '') ?></textarea>
             </div>
 
-            <div class="row g-3 mb-3">
-                <div class="col-6">
-                    <label class="form-label small fw-medium mb-1">$ Contado *</label>
+            <!-- Precio contado -->
+            <div class="mb-3">
+                <label class="form-label small fw-medium mb-1">Precio contado *</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-light fw-bold text-success">$</span>
                     <input type="number" name="precio_contado"
                            class="form-control form-control-touch"
                            value="<?= $art['precio_contado'] ?>"
                            min="0" step="0.01" inputmode="decimal" required>
                 </div>
-                <div class="col-6">
-                    <label class="form-label small fw-medium mb-1">$ Financiado *</label>
-                    <input type="number" name="precio_financiado"
-                           class="form-control form-control-touch"
-                           value="<?= $art['precio_financiado'] ?>"
-                           min="0" step="0.01" inputmode="decimal" required>
-                </div>
             </div>
 
+            <!-- Cuotas + monto por cuota -->
             <div class="row g-3 mb-3">
                 <div class="col-6">
-                    <label class="form-label small fw-medium mb-1">Cuotas</label>
-                    <select name="cuotas" class="form-select form-select-touch">
-                        <?php foreach ([1,3,6,9,12,18,24] as $c): ?>
-                        <option value="<?= $c ?>" <?= $art['cuotas'] == $c ? 'selected' : '' ?>>
-                            <?= $c === 1 ? '1 pago' : "{$c} cuotas" ?>
-                        </option>
-                        <?php endforeach; ?>
-                    </select>
+                    <label class="form-label small fw-medium mb-1">Cantidad de cuotas *</label>
+                    <input type="number" name="cuotas" id="cuotas"
+                           class="form-control form-control-touch text-center fw-bold"
+                           value="<?= (int)$art['cuotas'] ?>"
+                           min="1" max="60" inputmode="numeric">
                 </div>
                 <div class="col-6">
-                    <label class="form-label small fw-medium mb-1">Alerta stock ≤</label>
-                    <input type="number" name="stock_minimo"
-                           class="form-control form-control-touch text-center"
-                           value="<?= $art['stock_minimo'] ?>"
-                           min="1" inputmode="numeric">
+                    <label class="form-label small fw-medium mb-1">Valor por cuota *</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light fw-bold text-primary">$</span>
+                        <input type="number" name="monto_cuota" id="monto_cuota"
+                               class="form-control form-control-touch"
+                               placeholder="0.00" min="0" step="0.01"
+                               value="<?= isset($art['monto_cuota_edit'])
+                                   ? $art['monto_cuota_edit']
+                                   : ($art['cuotas'] > 0
+                                       ? round($art['precio_financiado'] / $art['cuotas'], 2)
+                                       : $art['precio_financiado']) ?>"
+                               inputmode="decimal" required>
+                    </div>
                 </div>
             </div>
 
+            <!-- Preview total financiado -->
+            <div id="preview-cuota"
+                 class="mb-3 p-2 bg-primary bg-opacity-10 rounded-3 small text-center">
+                Total financiado:
+                <strong id="val-total-financiado" class="text-primary fs-6">—</strong>
+            </div>
+
+            <!-- Alerta stock -->
+            <div class="mb-3">
+                <label class="form-label small fw-medium mb-1">Alerta stock ≤</label>
+                <input type="number" name="stock_minimo"
+                       class="form-control form-control-touch text-center"
+                       value="<?= $art['stock_minimo'] ?>"
+                       min="1" inputmode="numeric">
+            </div>
+
+            <!-- URL imagen + preview -->
             <div class="mb-1">
                 <label class="form-label small fw-medium mb-1">URL imagen</label>
-                <input type="url" name="imagen_url"
-                       class="form-control form-control-touch"
+                <input type="url" id="imagen_url" name="imagen_url"
+                       class="form-control form-control-touch mb-2"
                        value="<?= htmlspecialchars($art['imagen_url'] ?? '') ?>"
                        inputmode="url">
+                <div id="preview-img" class="text-center <?= empty($art['imagen_url']) ? 'd-none' : '' ?>">
+                    <img id="img-prev"
+                         src="<?= htmlspecialchars($art['imagen_url'] ?? '') ?>"
+                         alt="Preview"
+                         class="rounded-3 shadow-sm"
+                         style="max-height:160px;max-width:100%;object-fit:contain">
+                </div>
             </div>
         </div>
 
@@ -361,5 +388,37 @@ $csrfToken = csrfToken();
 <?php require_once __DIR__ . '/../includes/bottom_nav.php'; ?>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="<?= APP_URL ?>/assets/js/app.js"></script>
+<script>
+// Preview total financiado
+const inpMontoCuota = document.getElementById('monto_cuota');
+const selCuotas     = document.getElementById('cuotas');
+const valTotalFin   = document.getElementById('val-total-financiado');
+
+function actualizarPreviewCuota() {
+    const m = parseFloat(inpMontoCuota.value) || 0;
+    const c = parseInt(selCuotas.value) || 1;
+    const total = m * c;
+    valTotalFin.textContent = total > 0
+        ? '$' + total.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+        : '—';
+}
+inpMontoCuota.addEventListener('input', actualizarPreviewCuota);
+selCuotas.addEventListener('input', actualizarPreviewCuota);
+actualizarPreviewCuota(); // calcular al cargar
+
+// Preview de imagen
+document.getElementById('imagen_url').addEventListener('input', function () {
+    const url  = this.value.trim();
+    const wrap = document.getElementById('preview-img');
+    const img  = document.getElementById('img-prev');
+    if (url.startsWith('http')) {
+        img.src = url;
+        img.onload  = () => wrap.classList.remove('d-none');
+        img.onerror = () => wrap.classList.add('d-none');
+    } else {
+        wrap.classList.add('d-none');
+    }
+});
+</script>
 </body>
 </html>
