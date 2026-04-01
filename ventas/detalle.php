@@ -17,8 +17,8 @@ if (!$id) {
 
 // Cabecera de la venta
 $stmtV = $pdo->prepare(
-    'SELECT v.id, v.tipo_pago, v.cuotas, v.total, v.estado, v.observaciones,
-            v.created_at,
+    'SELECT v.id, v.tipo_pago, v.cuotas, v.es_mensual, v.primer_vencimiento,
+            v.total, v.estado, v.observaciones, v.created_at,
             c.nombre, c.apellido, c.celular, c.direccion, c.localidad,
             p.nombre AS provincia,
             u.nombre AS vendedor
@@ -72,8 +72,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['anular'])) {
 
 $pageTitle   = "Venta #{$id}";
 $csrfToken   = csrfToken();
-$esFinanciado = $venta['tipo_pago'] === 'financiado';
-$montoCuota   = $esFinanciado && $venta['cuotas'] > 0
+$esFinanciado      = $venta['tipo_pago'] === 'financiado';
+$esMensual         = (bool)$venta['es_mensual'];
+$primerVencimiento = $venta['primer_vencimiento'];
+$montoCuota        = $esFinanciado && $venta['cuotas'] > 0
     ? $venta['total'] / $venta['cuotas']
     : 0;
 
@@ -201,6 +203,15 @@ $estadoBadge = match($venta['estado']) {
                 <span class="text-muted">Cuotas</span>
                 <span class="fw-medium"><?= $venta['cuotas'] ?>x de <?= formatPesos($montoCuota) ?></span>
             </div>
+            <?php if ($esMensual && $primerVencimiento): ?>
+            <div class="d-flex justify-content-between py-2 border-bottom border-light-subtle small">
+                <span class="text-muted">Pago mensual</span>
+                <span class="fw-medium">
+                    <i class="bi bi-calendar-check text-primary me-1"></i>
+                    Vence el <?= date('d/m/Y', strtotime($primerVencimiento)) ?>
+                </span>
+            </div>
+            <?php endif; ?>
             <?php endif; ?>
 
             <div class="d-flex justify-content-between pt-3">

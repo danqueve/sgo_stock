@@ -30,8 +30,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $obs         = trim($_POST['observaciones'] ?? '');
         $tipo_pago   = $_POST['tipo_pago'] ?? 'financiado';
         $cuotas      = (int)($_POST['cuotas'] ?? 1);
-        $articulo_id = (int)($_POST['articulo_id'] ?? 0);
-        $cantidad    = (int)($_POST['cantidad'] ?? 1);
+        $articulo_id        = (int)($_POST['articulo_id'] ?? 0);
+        $cantidad           = (int)($_POST['cantidad'] ?? 1);
+        $es_mensual         = ($tipo_pago === 'financiado' && isset($_POST['es_mensual'])) ? 1 : 0;
+        $primer_vencimiento = trim($_POST['primer_vencimiento'] ?? '');
 
         if (!$nombre)    $errors[] = 'El nombre es obligatorio.';
         if (!$apellido)  $errors[] = 'El apellido es obligatorio.';
@@ -41,6 +43,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!preg_match('/^[\d\s\-\+]{8,15}$/', $celular)) $errors[] = 'Celular inválido.';
         if (!$articulo_id) $errors[] = 'Seleccioná un artículo.';
         if ($cantidad < 1) $errors[] = 'La cantidad debe ser al menos 1.';
+        if ($es_mensual) {
+            if (!$primer_vencimiento) {
+                $errors[] = 'Indicá la fecha del primer vencimiento.';
+            } elseif ($primer_vencimiento < date('Y-m-d')) {
+                $errors[] = 'El primer vencimiento no puede ser una fecha pasada.';
+            }
+        }
 
         if (empty($errors)) {
             // Verificar stock disponible
@@ -81,12 +90,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     // 2. Insertar venta (cabecera)
                     $stmtVta = $pdo->prepare(
                         'INSERT INTO ventas
-                            (cliente_id, vendedor_id, tipo_pago, cuotas, total, estado, observaciones)
-                         VALUES (?, ?, ?, ?, ?, "confirmada", ?)'
+                            (cliente_id, vendedor_id, tipo_pago, cuotas,
+                             es_mensual, primer_vencimiento, total, estado, observaciones)
+                         VALUES (?, ?, ?, ?, ?, ?, ?, "confirmada", ?)'
                     );
                     $stmtVta->execute([
                         $clienteId, $user['id'],
                         $tipo_pago, ($tipo_pago === 'financiado' ? $cuotas : 1),
+                        $es_mensual,
+                        ($es_mensual && $primer_vencimiento) ? $primer_vencimiento : null,
                         $total, $obs
                     ]);
                     $ventaId = (int)$pdo->lastInsertId();
@@ -235,6 +247,34 @@ $csrfToken = csrfToken();
                     <div class="d-flex justify-content-between">
                         <span class="text-muted">Total financiado</span>
                         <span class="fw-medium" id="lbl-total">—</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Venta mensual (solo financiado) -->
+            <div class="mt-3 p-3 border rounded-3 bg-white" id="sec-mensual">
+                <div class="form-check form-switch mb-0">
+                    <input class="form-check-input" type="checkbox"
+                           role="switch"
+                           name="es_mensual" id="chk-mensual" value="1"
+                           <?= !isset($_POST['es_mensual']) || $_POST['es_mensual'] ? 'checked' : '' ?>>
+                    <label class="form-check-label fw-medium" for="chk-mensual">
+                        <i class="bi bi-calendar-month me-1 text-primary"></i>
+                        ¿Es venta mensual?
+                    </label>
+                </div>
+                <div id="sec-vencimiento" class="mt-3 <?= (isset($_POST['es_mensual']) && !$_POST['es_mensual']) ? 'd-none' : '' ?>">
+                    <label for="primer_vencimiento"
+                           class="form-label small fw-medium mb-1">
+                        Primer vencimiento *
+                    </label>
+                    <input type="date"
+                           id="primer_vencimiento" name="primer_vencimiento"
+                           class="form-control form-control-touch"
+                           min="<?= date('Y-m-d') ?>"
+                           value="<?= htmlspecialchars($_POST['primer_vencimiento'] ?? '') ?>">
+                    <div class="form-text text-muted small mt-1">
+                        <i class="bi bi-info-circle me-1"></i>Fecha del primer cobro mensual
                     </div>
                 </div>
             </div>
@@ -475,6 +515,10 @@ $csrfToken = csrfToken();
                         <span class="text-muted">Pago</span>
                         <strong id="confirm-pago">—</strong>
                     </div>
+                    <div class="d-flex justify-content-between mb-1 d-none" id="confirm-mensual-row">
+                        <span class="text-muted">Mensual</span>
+                        <strong id="confirm-mensual" class="text-primary">—</strong>
+                    </div>
                     <div class="d-flex justify-content-between mb-1">
                         <span class="text-muted">Cantidad</span>
                         <strong id="confirm-cant">—</strong>
@@ -516,6 +560,9 @@ const modalBuscar   = document.getElementById('modal-buscar');
 
 let articuloActual    = null;
 let catalogoArticulos = [];
+const chkMensual      = document.getElementById('chk-mensual');
+const secVencimiento  = document.getElementById('sec-vencimiento');
+const inputVenc       = document.getElementById('primer_vencimiento');
 let catalogoCargado   = false;
 
 /* ── Carga del catálogo ──────────────────────────────────── */
@@ -659,7 +706,19 @@ function formatPesos(n) {
 function toggleSeccionesPago(tipo) {
     document.getElementById('sec-financiado').classList.toggle('d-none', tipo !== 'financiado');
     document.getElementById('sec-contado').classList.toggle('d-none',    tipo === 'financiado');
+    // Al cambiar a contado, limpiar toggle mensual
+    if (tipo === 'contado') {
+        chkMensual.checked = false;
+        secVencimiento.classList.add('d-none');
+        inputVenc.value = '';
+    }
 }
+
+/* ── Toggle venta mensual ────────────────────────────────── */
+chkMensual.addEventListener('change', function () {
+    secVencimiento.classList.toggle('d-none', !this.checked);
+    if (!this.checked) inputVenc.value = '';
+});
 
 document.querySelectorAll('input[name="tipo_pago"]').forEach(r =>
     r.addEventListener('change', e => {
@@ -699,6 +758,16 @@ window.cambiarCantidad = function(delta) {
         document.getElementById('confirm-pago').textContent = tipo === 'financiado' ? 'Financiado' : 'Contado';
         document.getElementById('confirm-cant').textContent = cant;
         document.getElementById('confirm-total').textContent = document.getElementById('lbl-total-final').textContent;
+
+        // Mensual en el modal
+        const mensualRow = document.getElementById('confirm-mensual-row');
+        if (tipo === 'financiado' && chkMensual.checked && inputVenc.value) {
+            const [y, m, d] = inputVenc.value.split('-');
+            document.getElementById('confirm-mensual').textContent = `Sí — vence el ${d}/${m}/${y}`;
+            mensualRow.classList.remove('d-none');
+        } else {
+            mensualRow.classList.add('d-none');
+        }
 
         confirmModal.show();
     });
