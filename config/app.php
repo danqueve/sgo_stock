@@ -5,8 +5,24 @@
 
 define('APP_NAME',    'Imperio Comercial');
 define('APP_VERSION', '1.0.0');
-define('APP_URL',     'http://localhost/sgo');
-define('APP_ENV',     'development'); // 'production' en producción
+
+// Detectar entorno automáticamente según el host
+(function() {
+    $host    = $_SERVER['HTTP_HOST'] ?? 'localhost';
+    $isLocal = in_array($host, ['localhost', '127.0.0.1'], true)
+               || str_ends_with($host, '.local')
+               || str_ends_with($host, '.test');
+
+    if ($isLocal) {
+        define('APP_URL', 'http://localhost/sgo');
+        define('APP_ENV', 'development');
+    } else {
+        // VPS: construir URL base a partir del host real
+        $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+        define('APP_URL', $scheme . '://' . $host);
+        define('APP_ENV', 'production');
+    }
+})();
 
 // Zona horaria Argentina
 date_default_timezone_set('America/Argentina/Buenos_Aires');
