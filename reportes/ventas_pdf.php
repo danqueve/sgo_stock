@@ -27,12 +27,13 @@ $where = 'WHERE ' . implode(' AND ', $cond);
 $stmtV = $pdo->prepare(
     "SELECT v.id, v.tipo_pago, v.cuotas, v.total, v.created_at,
             c.nombre AS cli_nombre, c.apellido AS cli_apellido,
-            c.celular, c.localidad, p.nombre AS provincia,
-            u.nombre AS vendedor
+            c.celular,
+            (SELECT GROUP_CONCAT(a.nombre ORDER BY a.nombre SEPARATOR ', ')
+               FROM venta_detalles vd
+               JOIN articulos a ON a.id = vd.articulo_id
+              WHERE vd.venta_id = v.id) AS articulos_vendidos
        FROM ventas v
-       JOIN clientes c   ON c.id = v.cliente_id
-       JOIN provincias p ON p.id = c.provincia_id
-       JOIN usuarios u   ON u.id = v.vendedor_id
+       JOIN clientes c ON c.id = v.cliente_id
      $where
      ORDER BY v.created_at DESC"
 );
@@ -93,32 +94,85 @@ $vendedores = $pdo->query(
         .tipo-contado    { color: #155724; font-weight:600; }
         .tipo-financiado { color: #084298; font-weight:600; }
 
-        /* ── Print ────────────────────────────────────────── */
+        /* ── Print B&W ────────────────────────────────────── */
         @media print {
             @page {
-                size: A4 landscape;
+                size: A4 portrait;
                 margin: 1.5cm 1cm;
             }
+
+            /* Forzar blanco y negro */
+            * {
+                color: #000 !important;
+                background: transparent !important;
+                box-shadow: none !important;
+                text-shadow: none !important;
+                opacity: 1 !important;
+            }
+
             body {
                 background: #fff !important;
                 font-size: 9pt;
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
             }
+
             .no-print { display: none !important; }
-            .report-header { border-radius: 0 !important; }
-            .report-table th { font-size: 7pt; padding: .3rem .4rem; }
+
+            /* Header: sin gradiente, solo borde inferior */
+            .report-header {
+                border-radius: 0 !important;
+                border-bottom: 2px solid #000 !important;
+                padding-left: 0 !important;
+                padding-right: 0 !important;
+            }
+
+            /* KPI cards: compactas en una sola fila */
+            .row.g-3 {
+                display: flex !important;
+                flex-wrap: nowrap !important;
+                gap: .3rem !important;
+                margin-bottom: .5rem !important;
+            }
+            .row.g-3 > [class*="col-"] {
+                flex: 1 !important;
+                width: auto !important;
+                padding: 0 !important;
+            }
+            .stat-card {
+                padding: .2rem .35rem !important;
+                gap: .3rem !important;
+                border: 1px solid #888 !important;
+                border-radius: 3px !important;
+                page-break-inside: avoid;
+                flex-direction: row !important;
+                align-items: center !important;
+            }
+            .stat-card__icon { display: none !important; }
+            .stat-card__value {
+                font-size: 8pt !important;
+                font-weight: 700 !important;
+                margin-bottom: 0 !important;
+                line-height: 1.2 !important;
+            }
+            .stat-card__label {
+                font-size: 6.5pt !important;
+                letter-spacing: 0 !important;
+            }
+
+            /* Tabla */
+            .report-table th {
+                font-size: 7pt;
+                padding: .3rem .4rem;
+                background: #e0e0e0 !important;
+                border-bottom: 2px solid #000 !important;
+            }
             .report-table td { font-size: 8pt; padding: .25rem .4rem !important; }
-            .card { box-shadow: none !important; border: 1px solid #ccc !important; }
-            .stat-card { page-break-inside: avoid; }
+            .card { border: 1px solid #888 !important; }
             thead { display: table-header-group; }
             tfoot { display: table-footer-group; }
             tr { page-break-inside: avoid; }
 
-            /* Colores en impresión */
-            .table-success td { background-color: #d4edda !important; }
-            .tipo-contado    { color: #155724 !important; }
-            .tipo-financiado { color: #084298 !important; }
+            /* Sin fondo en filas de contado */
+            .table-success td { background: transparent !important; }
         }
     </style>
 </head>
@@ -253,12 +307,10 @@ $vendedores = $pdo->query(
             <table class="table report-table table-hover mb-0">
                 <thead>
                     <tr>
-                        <th class="ps-3">#</th>
-                        <th>Fecha</th>
+                        <th class="ps-3">Fecha</th>
                         <th>Cliente</th>
-                        <th>Localidad</th>
                         <th>Celular</th>
-                        <th>Vendedor</th>
+                        <th>Artículo Vendido</th>
                         <th class="text-center">Tipo pago</th>
                         <th class="text-center">Cuotas</th>
                         <th class="text-end pe-3">Total</th>
@@ -268,14 +320,12 @@ $vendedores = $pdo->query(
                     <?php if ($ventas): ?>
                     <?php foreach ($ventas as $v): ?>
                     <tr class="<?= $v['tipo_pago'] === 'contado' ? 'table-success' : '' ?>">
-                        <td class="ps-3 text-muted"><?= $v['id'] ?></td>
-                        <td><?= date('d/m/Y H:i', strtotime($v['created_at'])) ?></td>
+                        <td class="ps-3"><?= date('d/m/Y H:i', strtotime($v['created_at'])) ?></td>
                         <td>
                             <strong><?= htmlspecialchars($v['cli_apellido'] . ', ' . $v['cli_nombre']) ?></strong>
                         </td>
-                        <td><?= htmlspecialchars($v['localidad']) ?>, <?= htmlspecialchars($v['provincia']) ?></td>
                         <td><?= htmlspecialchars($v['celular']) ?></td>
-                        <td><?= htmlspecialchars($v['vendedor']) ?></td>
+                        <td><?= htmlspecialchars($v['articulos_vendidos'] ?? '—') ?></td>
                         <td class="text-center">
                             <span class="tipo-<?= $v['tipo_pago'] ?>">
                                 <?= ucfirst($v['tipo_pago']) ?>
@@ -289,7 +339,7 @@ $vendedores = $pdo->query(
                     <?php endforeach; ?>
                     <?php else: ?>
                     <tr>
-                        <td colspan="9" class="text-center text-muted py-4">
+                        <td colspan="7" class="text-center text-muted py-4">
                             No hay ventas para el período y filtros seleccionados.
                         </td>
                     </tr>
@@ -297,10 +347,9 @@ $vendedores = $pdo->query(
                 </tbody>
                 <tfoot class="table-secondary">
                     <tr>
-                        <td colspan="5" class="ps-3 fw-bold">
+                        <td colspan="4" class="ps-3 fw-bold">
                             TOTAL PERÍODO
                         </td>
-                        <td></td>
                         <td class="text-center fw-bold"><?= $kpi['cant'] ?> ventas</td>
                         <td></td>
                         <td class="text-end fw-bold pe-3 text-success">
@@ -308,12 +357,11 @@ $vendedores = $pdo->query(
                         </td>
                     </tr>
                     <tr>
-                        <td colspan="8" class="ps-3 text-muted small">
+                        <td colspan="7" class="ps-3 text-muted small">
                             Contado: <?= formatPesos($kpi['contado']) ?>
                             &nbsp;·&nbsp;
                             Financiado: <?= formatPesos($kpi['financiado']) ?>
                         </td>
-                        <td></td>
                     </tr>
                 </tfoot>
             </table>
@@ -321,8 +369,7 @@ $vendedores = $pdo->query(
     </div>
 
     <p class="text-muted small text-center mt-3 no-print">
-        <strong>Ctrl+P</strong> → Destino: Guardar como PDF → Orientación: Horizontal (Paisaje)
-        → ✓ Habilitar gráficos de fondo
+        <strong>Ctrl+P</strong> → Destino: Impresora / Guardar como PDF → Orientación: Vertical (Retrato)
     </p>
 
 </div>
