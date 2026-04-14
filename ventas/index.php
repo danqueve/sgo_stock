@@ -1,6 +1,6 @@
 <?php
 // ============================================================
-// ventas/index.php — Historial de ventas con filtros
+// ventas/index.php — Historial de ventas con datos de cliente
 // ============================================================
 require_once __DIR__ . '/../config/app.php';
 require_once __DIR__ . '/../config/db.php';
@@ -11,29 +11,35 @@ $pageTitle = 'Ventas';
 $user      = currentUser();
 
 // ── Filtros ──────────────────────────────────────────────────
-$desde     = $_GET['desde']    ?? date('Y-m-01');           // primer día del mes
-$hasta     = $_GET['hasta']    ?? date('Y-m-d');
-$tipoPago  = $_GET['tipo']     ?? '';
-$estado    = $_GET['estado']   ?? 'confirmada';
-$buscar    = trim($_GET['q']   ?? '');
+$sinFecha  = isset($_GET['sin_fecha']) && $_GET['sin_fecha'] === '1';
+$desde     = $sinFecha ? '' : ($_GET['desde'] ?? date('Y-m-01'));
+$hasta     = $sinFecha ? '' : ($_GET['hasta'] ?? date('Y-m-d'));
+$tipoPago  = $_GET['tipo']    ?? '';
+$estado    = $_GET['estado']  ?? 'confirmada';
+$buscar    = trim($_GET['q']  ?? '');
 
 // Vendedor: Admin ve todo, Vendedor solo las suyas
 $soloMio   = ($user['rol'] !== 'admin');
 
 // ── Construir WHERE ──────────────────────────────────────────
-$cond   = ['DATE(v.created_at) BETWEEN ? AND ?'];
-$params = [$desde, $hasta];
+$cond   = [];
+$params = [];
 
-if ($estado)   { $cond[] = 'v.estado = ?';    $params[] = $estado; }
-if ($tipoPago) { $cond[] = 'v.tipo_pago = ?'; $params[] = $tipoPago; }
-if ($soloMio)  { $cond[] = 'v.vendedor_id = ?'; $params[] = $user['id']; }
-if ($buscar)   {
-    $cond[]   = '(c.nombre LIKE ? OR c.apellido LIKE ? OR c.celular LIKE ?)';
+if (!$sinFecha && $desde && $hasta) {
+    $cond[]   = 'DATE(v.created_at) BETWEEN ? AND ?';
+    $params[] = $desde;
+    $params[] = $hasta;
+}
+if ($estado)   { $cond[] = 'v.estado = ?';       $params[] = $estado; }
+if ($tipoPago) { $cond[] = 'v.tipo_pago = ?';     $params[] = $tipoPago; }
+if ($soloMio)  { $cond[] = 'v.vendedor_id = ?';   $params[] = $user['id']; }
+if ($buscar) {
     $like     = "%{$buscar}%";
-    $params   = array_merge($params, [$like, $like, $like]);
+    $cond[]   = '(c.nombre LIKE ? OR c.apellido LIKE ? OR c.celular LIKE ? OR c.dni LIKE ?)';
+    $params   = array_merge($params, [$like, $like, $like, $like]);
 }
 
-$where = 'WHERE ' . implode(' AND ', $cond);
+$where = $cond ? 'WHERE ' . implode(' AND ', $cond) : '';
 
 // ── Totales del período ──────────────────────────────────────
 $stmtTot = $pdo->prepare(
@@ -45,16 +51,22 @@ $totales = $stmtTot->fetch();
 
 // ── Ventas paginadas ─────────────────────────────────────────
 $pagina  = max(1, (int)($_GET['pag'] ?? 1));
-$porPag  = 15;
+$porPag  = 20;
 $offset  = ($pagina - 1) * $porPag;
 
 $stmtV = $pdo->prepare(
     "SELECT v.id, v.tipo_pago, v.cuotas, v.total, v.estado, v.created_at,
-            c.nombre, c.apellido, c.celular,
-            u.nombre AS vendedor
+            c.nombre, c.apellido, c.dni, c.celular, c.localidad,
+            p.nombre AS provincia,
+            u.nombre AS vendedor,
+            (SELECT GROUP_CONCAT(a.nombre ORDER BY a.nombre SEPARATOR ' · ')
+               FROM venta_detalles vd
+               JOIN articulos a ON a.id = vd.articulo_id
+              WHERE vd.venta_id = v.id) AS articulos_vendidos
        FROM ventas v
-       JOIN clientes c ON c.id = v.cliente_id
-       JOIN usuarios u ON u.id = v.vendedor_id
+       JOIN clientes c   ON c.id = v.cliente_id
+       JOIN provincias p ON p.id = c.provincia_id
+       JOIN usuarios u   ON u.id = v.vendedor_id
      $where
      ORDER BY v.created_at DESC
      LIMIT $porPag OFFSET $offset"
@@ -63,6 +75,12 @@ $stmtV->execute($params);
 $ventas = $stmtV->fetchAll();
 
 $totalPags = (int)ceil($totales['cant'] / $porPag);
+
+// Parámetros actuales sin paginación (para links)
+$qActual = array_filter(
+    array_diff_key($_GET, ['pag' => '']),
+    fn($v) => $v !== ''
+);
 ?>
 <?php require_once __DIR__ . '/../includes/head.php'; ?>
 <?php require_once __DIR__ . '/../includes/topbar.php'; ?>
@@ -79,21 +97,28 @@ $totalPags = (int)ceil($totales['cant'] / $porPag);
     </div>
 
     <!-- ── FILTROS ─────────────────────────────────────────── -->
-    <form method="GET" class="mb-3">
+    <form method="GET" id="formFiltros" class="mb-3">
 
-        <!-- Buscador cliente -->
+        <!-- Buscador -->
         <div class="input-group mb-2 shadow-sm">
             <span class="input-group-text bg-white border-end-0">
                 <i class="bi bi-search text-muted"></i>
             </span>
             <input type="text" name="q"
                    class="form-control form-control-touch border-start-0 ps-0"
-                   placeholder="Buscar por nombre, apellido o celular..."
+                   placeholder="Nombre, apellido, celular o DNI..."
                    value="<?= htmlspecialchars($buscar) ?>"
                    autocomplete="off">
+            <?php if ($buscar): ?>
+            <button type="button" class="btn btn-outline-secondary"
+                    onclick="document.querySelector('[name=q]').value='';document.getElementById('formFiltros').submit()">
+                <i class="bi bi-x-lg"></i>
+            </button>
+            <?php endif; ?>
         </div>
 
         <!-- Fechas -->
+        <?php if (!$sinFecha): ?>
         <div class="row g-2 mb-2">
             <div class="col-6">
                 <label class="form-label small fw-medium mb-1">Desde</label>
@@ -108,10 +133,27 @@ $totalPags = (int)ceil($totales['cant'] / $porPag);
                        value="<?= $hasta ?>">
             </div>
         </div>
+        <?php else: ?>
+        <input type="hidden" name="sin_fecha" value="1">
+        <?php endif; ?>
 
-        <!-- Chips de tipo de pago -->
+        <!-- Chips -->
         <div class="scroll-x-touch mb-2 pb-1">
             <div class="d-flex gap-2" style="width:max-content">
+
+                <!-- Rango de fechas -->
+                <a href="?<?= http_build_query(array_merge(array_diff_key($qActual, ['sin_fecha'=>'']), ['desde'=>date('Y-m-01'),'hasta'=>date('Y-m-d')])) ?>"
+                   class="btn btn-sm rounded-pill <?= !$sinFecha ? 'btn-dark' : 'btn-outline-secondary' ?>">
+                    <i class="bi bi-calendar3 me-1"></i>Este mes
+                </a>
+                <a href="?<?= http_build_query(array_merge(array_diff_key($qActual, ['desde'=>'','hasta'=>'']), ['sin_fecha'=>'1'])) ?>"
+                   class="btn btn-sm rounded-pill <?= $sinFecha ? 'btn-dark' : 'btn-outline-secondary' ?>">
+                    <i class="bi bi-infinity me-1"></i>Todas
+                </a>
+
+                <span class="border-start mx-1"></span>
+
+                <!-- Tipo de pago -->
                 <?php foreach (['' => 'Todos', 'contado' => 'Contado', 'financiado' => 'Financiado'] as $v => $lbl): ?>
                 <input type="radio" class="btn-check" name="tipo"
                        id="tipo-<?= $v ?: 'todos' ?>" value="<?= $v ?>"
@@ -120,6 +162,8 @@ $totalPags = (int)ceil($totales['cant'] / $porPag);
                               <?= $tipoPago === $v ? 'btn-warning' : 'btn-outline-secondary' ?>"
                        for="tipo-<?= $v ?: 'todos' ?>"><?= $lbl ?></label>
                 <?php endforeach; ?>
+
+                <span class="border-start mx-1"></span>
 
                 <!-- Estado -->
                 <?php foreach (['' => 'Todos estados', 'confirmada' => 'Confirmadas', 'anulada' => 'Anuladas'] as $v => $lbl): ?>
@@ -130,6 +174,7 @@ $totalPags = (int)ceil($totales['cant'] / $porPag);
                               <?= $estado === $v ? 'btn-primary' : 'btn-outline-secondary' ?>"
                        for="est-<?= $v ?: 'todos' ?>"><?= $lbl ?></label>
                 <?php endforeach; ?>
+
             </div>
         </div>
 
@@ -175,29 +220,45 @@ $totalPags = (int)ceil($totales['cant'] / $porPag);
            class="text-decoration-none">
             <div class="card border-0 shadow-sm rounded-3">
                 <div class="card-body py-2 px-3">
-                    <div class="d-flex align-items-center justify-content-between">
-                        <div class="d-flex align-items-center gap-2">
+
+                    <!-- Fila 1: nombre + total -->
+                    <div class="d-flex align-items-start justify-content-between gap-2">
+                        <div class="d-flex align-items-center gap-2 min-w-0">
                             <div class="rounded-circle d-flex align-items-center justify-content-center
                                         bg-<?= $badge ?> bg-opacity-15 flex-shrink-0"
-                                 style="width:40px;height:40px">
-                                <i class="bi bi-receipt text-<?= $badge ?>"></i>
+                                 style="width:38px;height:38px">
+                                <i class="bi bi-receipt text-<?= $badge ?>" style="font-size:.9rem"></i>
                             </div>
-                            <div>
-                                <p class="mb-0 fw-medium small">
+                            <div class="min-w-0">
+                                <p class="mb-0 fw-semibold small text-truncate">
                                     <?= htmlspecialchars($v['apellido'] . ', ' . $v['nombre']) ?>
                                 </p>
-                                <p class="mb-0 text-muted" style="font-size:.7rem">
-                                    #<?= $v['id'] ?>
-                                    &middot; <?= date('d/m H:i', strtotime($v['created_at'])) ?>
-                                    &middot; <?= ucfirst($v['tipo_pago']) ?>
-                                    <?= $v['cuotas'] > 1 ? "({$v['cuotas']}x)" : '' ?>
+                                <!-- Fila 2: DNI · Celular · Localidad -->
+                                <p class="mb-0 text-muted" style="font-size:.72rem">
+                                    <?php if ($v['dni']): ?>
+                                    <i class="bi bi-person-vcard me-1"></i><?= htmlspecialchars($v['dni']) ?>
+                                    &nbsp;&middot;&nbsp;
+                                    <?php endif; ?>
+                                    <i class="bi bi-phone me-1"></i><?= htmlspecialchars($v['celular']) ?>
+                                    &nbsp;&middot;&nbsp;
+                                    <i class="bi bi-geo-alt me-1"></i><?= htmlspecialchars($v['localidad']) ?>, <?= htmlspecialchars($v['provincia']) ?>
                                 </p>
-                                <?php if ($user['rol'] === 'admin'): ?>
-                                <p class="mb-0 text-muted" style="font-size:.7rem">
-                                    <i class="bi bi-person me-1"></i>
-                                    <?= htmlspecialchars($v['vendedor']) ?>
+                                <!-- Fila 3: Artículos -->
+                                <?php if ($v['articulos_vendidos']): ?>
+                                <p class="mb-0 text-muted text-truncate" style="font-size:.72rem; max-width:200px">
+                                    <i class="bi bi-box me-1"></i><?= htmlspecialchars($v['articulos_vendidos']) ?>
                                 </p>
                                 <?php endif; ?>
+                                <!-- Fila 4: meta de venta -->
+                                <p class="mb-0 text-muted" style="font-size:.68rem">
+                                    #<?= $v['id'] ?>
+                                    &middot; <?= date('d/m/Y H:i', strtotime($v['created_at'])) ?>
+                                    &middot; <?= ucfirst($v['tipo_pago']) ?>
+                                    <?= $v['cuotas'] > 1 ? "({$v['cuotas']}x)" : '' ?>
+                                    <?php if ($user['rol'] === 'admin'): ?>
+                                    &middot; <i class="bi bi-person"></i> <?= htmlspecialchars($v['vendedor']) ?>
+                                    <?php endif; ?>
+                                </p>
                             </div>
                         </div>
                         <div class="text-end flex-shrink-0">
@@ -205,11 +266,12 @@ $totalPags = (int)ceil($totales['cant'] / $porPag);
                                 <?= formatPesos($v['total']) ?>
                             </p>
                             <span class="badge bg-<?= $badge ?> bg-opacity-15 text-<?= $badge ?>"
-                                  style="font-size:.65rem">
+                                  style="font-size:.62rem">
                                 <?= ucfirst($v['estado']) ?>
                             </span>
                         </div>
                     </div>
+
                 </div>
             </div>
         </a>
@@ -221,7 +283,7 @@ $totalPags = (int)ceil($totales['cant'] / $porPag);
     <nav class="mb-4" aria-label="Paginación">
         <div class="d-flex justify-content-center gap-2 flex-wrap">
             <?php if ($pagina > 1): ?>
-            <a href="?<?= http_build_query(array_merge($_GET, ['pag' => $pagina - 1])) ?>"
+            <a href="?<?= http_build_query(array_merge($qActual, ['pag' => $pagina - 1])) ?>"
                class="btn btn-sm btn-outline-secondary rounded-3 px-3">
                 <i class="bi bi-chevron-left"></i>
             </a>
@@ -229,10 +291,11 @@ $totalPags = (int)ceil($totales['cant'] / $porPag);
 
             <span class="btn btn-sm btn-warning disabled rounded-3 px-3">
                 <?= $pagina ?> / <?= $totalPags ?>
+                &nbsp;<small class="opacity-75">(<?= $totales['cant'] ?> ventas)</small>
             </span>
 
             <?php if ($pagina < $totalPags): ?>
-            <a href="?<?= http_build_query(array_merge($_GET, ['pag' => $pagina + 1])) ?>"
+            <a href="?<?= http_build_query(array_merge($qActual, ['pag' => $pagina + 1])) ?>"
                class="btn btn-sm btn-outline-secondary rounded-3 px-3">
                 <i class="bi bi-chevron-right"></i>
             </a>
@@ -244,11 +307,13 @@ $totalPags = (int)ceil($totales['cant'] / $porPag);
     <?php else: ?>
     <div class="text-center py-5">
         <i class="bi bi-receipt text-muted d-block mb-2" style="font-size:3rem"></i>
-        <p class="text-muted">No hay ventas en el período seleccionado.</p>
+        <p class="text-muted">No hay ventas<?= $buscar ? " para «" . htmlspecialchars($buscar) . "»" : ' en el período seleccionado' ?>.</p>
+        <?php if (!$buscar): ?>
         <a href="<?= APP_URL ?>/ventas/nueva.php"
            class="btn btn-warning rounded-3 px-4">
             <i class="bi bi-plus-lg me-2"></i>Registrar venta
         </a>
+        <?php endif; ?>
     </div>
     <?php endif; ?>
 

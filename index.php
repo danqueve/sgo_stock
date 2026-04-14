@@ -149,6 +149,17 @@ $ventas = $ultimasVentas->fetchAll();
                 </div>
             </a>
         </div>
+        <div class="col-6">
+            <a href="<?= APP_URL ?>/ventas/index.php"
+               class="d-block text-decoration-none">
+                <div class="card border-0 shadow-sm rounded-4 text-center py-3"
+                     style="background: #fff">
+                    <i class="bi bi-receipt text-warning mb-1"
+                       style="font-size:1.8rem"></i>
+                    <p class="fw-bold mb-0 small" style="color:var(--ic-text)">Historial</p>
+                </div>
+            </a>
+        </div>
 <?php if ($user['rol'] === 'admin'): ?>
         <div class="col-4">
             <a href="<?= APP_URL ?>/reportes/index.php"
@@ -188,7 +199,13 @@ $ventas = $ultimasVentas->fetchAll();
 
     <!-- Últimas ventas -->
     <?php if ($ventas): ?>
-    <p class="section-title text-center">Últimas ventas</p>
+    <div class="d-flex align-items-center justify-content-between mb-2">
+        <p class="section-title mb-0">Últimas ventas</p>
+        <a href="<?= APP_URL ?>/ventas/index.php?sin_fecha=1"
+           class="btn btn-sm btn-outline-secondary rounded-3 px-3" style="font-size:.75rem">
+            Ver todas <i class="bi bi-arrow-right ms-1"></i>
+        </a>
+    </div>
     <div class="d-flex flex-column gap-2 mb-4">
         <?php foreach ($ventas as $v): ?>
         <a href="<?= APP_URL ?>/ventas/detalle.php?id=<?= $v['id'] ?>"

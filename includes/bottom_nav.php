@@ -31,19 +31,13 @@ $currentPath = $_SERVER['PHP_SELF'];
         <span>Stock</span>
     </a>
 
+    <a href="<?= APP_URL ?>/ventas/index.php"
+       class="bottom-nav__item <?= strpos($currentPath, 'ventas/index') !== false ? 'active' : '' ?>">
+        <i class="bi bi-receipt"></i>
+        <span>Ventas</span>
+    </a>
+
     <?php if ($user['rol'] === 'admin'): ?>
-    <a href="<?= APP_URL ?>/admin/usuarios.php"
-       class="bottom-nav__item <?= strpos($currentPath, 'admin/usuarios') !== false ? 'active' : '' ?>">
-        <i class="bi bi-people-fill"></i>
-        <span>Usuarios</span>
-    </a>
-
-    <a href="<?= APP_URL ?>/admin/categorias.php"
-       class="bottom-nav__item <?= strpos($currentPath, 'admin/categorias') !== false ? 'active' : '' ?>">
-        <i class="bi bi-tags-fill"></i>
-        <span>Categorías</span>
-    </a>
-
     <a href="<?= APP_URL ?>/reportes/index.php"
        class="bottom-nav__item <?= strpos($currentPath, 'reportes') !== false ? 'active' : '' ?>">
         <i class="bi bi-bar-chart-line"></i>
