@@ -53,13 +53,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif (isset($_POST['ajuste_stock'])) {
         // ── Ajuste de stock manual ───────────────────────────
         $tipoAjuste = $_POST['tipo_ajuste'] ?? 'entrada';
-        $cantAjuste = max(1, (int)($_POST['cant_ajuste'] ?? 1));
         $motivo     = trim($_POST['motivo'] ?? 'Ajuste manual');
 
         $stockAntes = $art['stock_actual'];
-        $stockNuevo = $tipoAjuste === 'entrada'
-            ? $stockAntes + $cantAjuste
-            : max(0, $stockAntes - $cantAjuste);
+
+        if ($tipoAjuste === 'ajuste') {
+            // Fija el stock al valor exacto ingresado (permite 0)
+            $cantAjuste = max(0, (int)($_POST['cant_ajuste'] ?? 0));
+            $stockNuevo = $cantAjuste;
+        } elseif ($tipoAjuste === 'entrada') {
+            $cantAjuste = max(1, (int)($_POST['cant_ajuste'] ?? 1));
+            $stockNuevo = $stockAntes + $cantAjuste;
+        } else { // salida
+            $cantAjuste = max(1, (int)($_POST['cant_ajuste'] ?? 1));
+            $stockNuevo = max(0, $stockAntes - $cantAjuste);
+        }
 
         $pdo->beginTransaction();
         $pdo->prepare('UPDATE articulos SET stock_actual = ? WHERE id = ?')
@@ -87,7 +95,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $montoCuota = str_replace(['.', ','], ['', '.'], $_POST['monto_cuota']  ?? '0');
         $pF         = round($cuotas * (float)$montoCuota, 2);
         $stockMin = max(1, (int)($_POST['stock_minimo'] ?? 1));
-        $imgUrl   = trim($_POST['imagen_url'] ?? '') ?: null;
+        // Imagen: conservar la existente por defecto
+        $imgUrl = $art['imagen_url'];
+
+        // Si se marcó "eliminar imagen"
+        if (!empty($_POST['eliminar_imagen'])) {
+            eliminarImagenArticulo($imgUrl);
+            $imgUrl = null;
+        }
+
+        // Si se subió un nuevo archivo, reemplaza la imagen anterior
+        if (!empty($_FILES['imagen']['name'])) {
+            $nuevaUrl = subirImagenArticulo($_FILES['imagen']);
+            if ($nuevaUrl === false) {
+                $errors[] = 'La imagen no pudo subirse. Verificá que sea JPG, PNG o WebP y menor a 2 MB.';
+            } else {
+                eliminarImagenArticulo($imgUrl);
+                $imgUrl = $nuevaUrl;
+            }
+        }
 
         if (!$nombre)         $errors[] = 'El nombre es obligatorio.';
         if (!$catId)          $errors[] = 'Seleccioná una categoría.';
@@ -176,20 +202,25 @@ $csrfToken = csrfToken();
                 <input type="hidden" name="csrf_token" value="<?= $csrfToken ?>">
                 <input type="hidden" name="ajuste_stock" value="1">
 
-                <div class="row g-2">
+                <div class="row g-2 align-items-end">
                     <div class="col-4">
-                        <select name="tipo_ajuste" class="form-select form-select-touch">
+                        <label class="form-label small text-muted mb-1">Tipo</label>
+                        <select id="sel-tipo-ajuste" name="tipo_ajuste"
+                                class="form-select form-select-touch">
                             <option value="entrada">+ Entrada</option>
                             <option value="salida">− Salida</option>
-                            <option value="ajuste">≈ Ajuste</option>
+                            <option value="ajuste">= Fijar</option>
                         </select>
                     </div>
                     <div class="col-3">
-                        <input type="number" name="cant_ajuste"
+                        <label id="lbl-cant-ajuste"
+                               class="form-label small text-muted mb-1">Cantidad</label>
+                        <input type="number" id="inp-cant-ajuste" name="cant_ajuste"
                                class="form-control form-control-touch text-center fw-bold"
                                value="1" min="1" inputmode="numeric">
                     </div>
                     <div class="col-5">
+                        <label class="form-label small text-muted mb-1">Motivo</label>
                         <input type="text" name="motivo"
                                class="form-control form-control-touch"
                                placeholder="Motivo" value="Ajuste manual">
@@ -229,7 +260,7 @@ $csrfToken = csrfToken();
     </div>
 
     <!-- ── EDITAR DATOS ──────────────────────────────────────── -->
-    <form method="POST" novalidate>
+    <form method="POST" enctype="multipart/form-data" novalidate>
         <input type="hidden" name="csrf_token" value="<?= $csrfToken ?>">
 
         <div class="venta-form rounded-4 p-3 shadow-sm mb-3">
@@ -325,20 +356,38 @@ $csrfToken = csrfToken();
                        min="1" inputmode="numeric">
             </div>
 
-            <!-- URL imagen + preview -->
+            <!-- Imagen: subida de archivo -->
             <div class="mb-1">
-                <label class="form-label small fw-medium mb-1">URL imagen</label>
-                <input type="url" id="imagen_url" name="imagen_url"
-                       class="form-control form-control-touch mb-2"
-                       value="<?= htmlspecialchars($art['imagen_url'] ?? '') ?>"
-                       inputmode="url">
-                <div id="preview-img" class="text-center <?= empty($art['imagen_url']) ? 'd-none' : '' ?>">
+                <label class="form-label small fw-medium mb-1">Imagen del artículo</label>
+
+                <?php if (!empty($art['imagen_url'])): ?>
+                <div id="preview-img" class="text-center mb-2">
                     <img id="img-prev"
-                         src="<?= htmlspecialchars($art['imagen_url'] ?? '') ?>"
-                         alt="Preview"
+                         src="<?= htmlspecialchars($art['imagen_url']) ?>"
+                         alt="Imagen actual"
+                         class="rounded-3 shadow-sm"
+                         style="max-height:160px;max-width:100%;object-fit:contain">
+                    <p class="text-muted small mt-1 mb-1">Imagen actual</p>
+                </div>
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox"
+                           id="eliminar_imagen" name="eliminar_imagen" value="1">
+                    <label class="form-check-label small text-danger" for="eliminar_imagen">
+                        Eliminar imagen actual
+                    </label>
+                </div>
+                <?php else: ?>
+                <div id="preview-img" class="text-center d-none mb-2">
+                    <img id="img-prev" src="" alt="Preview"
                          class="rounded-3 shadow-sm"
                          style="max-height:160px;max-width:100%;object-fit:contain">
                 </div>
+                <?php endif; ?>
+
+                <input type="file" id="imagen" name="imagen"
+                       class="form-control form-control-touch mb-1"
+                       accept="image/jpeg,image/png,image/webp">
+                <p class="text-muted small mb-0">JPG, PNG o WebP · máx. 2 MB</p>
             </div>
         </div>
 
@@ -406,17 +455,33 @@ inpMontoCuota.addEventListener('input', actualizarPreviewCuota);
 selCuotas.addEventListener('input', actualizarPreviewCuota);
 actualizarPreviewCuota(); // calcular al cargar
 
-// Preview de imagen
-document.getElementById('imagen_url').addEventListener('input', function () {
-    const url  = this.value.trim();
+// Tipo de ajuste: cambia label y min del campo cantidad
+const selTipo  = document.getElementById('sel-tipo-ajuste');
+const inpCant  = document.getElementById('inp-cant-ajuste');
+const lblCant  = document.getElementById('lbl-cant-ajuste');
+
+function actualizarTipoAjuste() {
+    if (selTipo.value === 'ajuste') {
+        lblCant.textContent = 'Nuevo stock';
+        inpCant.min   = '0';
+        inpCant.value = '<?= (int)$art['stock_actual'] ?>';
+    } else {
+        lblCant.textContent = 'Cantidad';
+        inpCant.min   = '1';
+        if (inpCant.value === '0') inpCant.value = '1';
+    }
+}
+selTipo.addEventListener('change', actualizarTipoAjuste);
+
+// Preview de imagen con FileReader
+document.getElementById('imagen').addEventListener('change', function () {
+    const file = this.files[0];
     const wrap = document.getElementById('preview-img');
     const img  = document.getElementById('img-prev');
-    if (url.startsWith('http')) {
-        img.src = url;
-        img.onload  = () => wrap.classList.remove('d-none');
-        img.onerror = () => wrap.classList.add('d-none');
-    } else {
-        wrap.classList.add('d-none');
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = e => { img.src = e.target.result; wrap.classList.remove('d-none'); };
+        reader.readAsDataURL(file);
     }
 });
 </script>

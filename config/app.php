@@ -93,3 +93,37 @@ function getFlash(): ?array {
     }
     return null;
 }
+
+// ── Subida de imágenes de artículos ─────────────────────────
+define('UPLOAD_DIR', __DIR__ . '/../assets/uploads/articulos/');
+define('UPLOAD_URL', APP_URL . '/assets/uploads/articulos/');
+define('UPLOAD_MAX_BYTES', 2 * 1024 * 1024); // 2 MB
+
+/**
+ * Valida y guarda la imagen de un artículo subida vía $_FILES.
+ * Retorna la URL pública del archivo o false si falla.
+ */
+function subirImagenArticulo(array $file): string|false {
+    if ($file['error'] !== UPLOAD_ERR_OK) return false;
+    if ($file['size'] > UPLOAD_MAX_BYTES) return false;
+
+    $finfo = new finfo(FILEINFO_MIME_TYPE);
+    $mime  = $finfo->file($file['tmp_name']);
+    $exts  = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'];
+    if (!isset($exts[$mime])) return false;
+
+    $filename = uniqid('art_', true) . '.' . $exts[$mime];
+    if (!move_uploaded_file($file['tmp_name'], UPLOAD_DIR . $filename)) return false;
+
+    return UPLOAD_URL . $filename;
+}
+
+/**
+ * Elimina del disco una imagen local de artículo (ignora URLs externas).
+ */
+function eliminarImagenArticulo(?string $url): void {
+    if (!$url) return;
+    if (strpos($url, UPLOAD_URL) !== 0) return;
+    $path = UPLOAD_DIR . basename($url);
+    if (is_file($path)) @unlink($path);
+}
