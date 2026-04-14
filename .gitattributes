@@ -1,0 +1,14 @@
+# Forzar LF en todos los archivos de texto (evita conflictos CRLF/LF entre Windows y Linux)
+* text=auto eol=lf
+
+# Binarios — no tocar line endings
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.pdf  binary
+*.zip  binary
+*.ttf  binary
+*.woff binary
+*.woff2 binary
