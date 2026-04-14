@@ -6,23 +6,17 @@
 define('APP_NAME',    'Imperio Comercial');
 define('APP_VERSION', '1.0.0');
 
-// Detectar entorno automáticamente según el host
-(function() {
-    $host    = $_SERVER['HTTP_HOST'] ?? 'localhost';
-    $isLocal = in_array($host, ['localhost', '127.0.0.1'], true)
-               || str_ends_with($host, '.local')
-               || str_ends_with($host, '.test');
-
-    if ($isLocal) {
-        define('APP_URL', 'http://localhost/sgo');
-        define('APP_ENV', 'development');
-    } else {
-        // VPS: construir URL base a partir del host real
-        $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-        define('APP_URL', $scheme . '://' . $host);
-        define('APP_ENV', 'production');
-    }
-})();
+// Detectar entorno según el host (compatible PHP 7.4+)
+$_appHost = $_SERVER['HTTP_HOST'] ?? 'localhost';
+if ($_appHost === 'localhost' || $_appHost === '127.0.0.1') {
+    define('APP_URL', 'http://localhost/sgo');
+    define('APP_ENV', 'development');
+} else {
+    $_appScheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+    define('APP_URL', $_appScheme . '://' . $_appHost);
+    define('APP_ENV', 'production');
+}
+unset($_appHost, $_appScheme);
 
 // Zona horaria Argentina
 date_default_timezone_set('America/Argentina/Buenos_Aires');
