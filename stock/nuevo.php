@@ -28,14 +28,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $pFinanc    = round($cuotas * $montoCuota, 2);
         $stock      = (int)($_POST['stock_actual']  ?? 0);
         $stockMin   = max(1, (int)($_POST['stock_minimo'] ?? 1));
-        // Imagen: subida de archivo
-        $imagenUrl = null;
-        if (!empty($_FILES['imagen']['name'])) {
-            $imagenUrl = subirImagenArticulo($_FILES['imagen']);
-            if ($imagenUrl === false) {
-                $errors[] = 'La imagen no pudo subirse. Verificá que sea JPG, PNG o WebP y menor a 2 MB.';
-            }
-        }
+        // Imagen: URL externa
+        $imagenUrl = trim($_POST['imagen_url'] ?? '') ?: null;
 
         if (!$nombre)        $errors[] = 'El nombre es obligatorio.';
         if (!$catId)         $errors[] = 'Seleccioná una categoría.';
@@ -112,7 +106,7 @@ $csrfToken = csrfToken();
     </div>
     <?php endif; ?>
 
-    <form method="POST" enctype="multipart/form-data" novalidate>
+    <form method="POST" novalidate>
         <input type="hidden" name="csrf_token" value="<?= $csrfToken ?>">
 
         <!-- Información básica -->
@@ -250,16 +244,17 @@ $csrfToken = csrfToken();
             </div>
         </div>
 
-        <!-- Imagen (subida de archivo) -->
+        <!-- Imagen (URL externa) -->
         <div class="venta-form rounded-4 p-3 shadow-sm mb-4">
             <p class="section-title mb-2">
                 <i class="bi bi-image me-1 text-warning"></i>Imagen <span class="text-muted">(opcional)</span>
             </p>
-            <input type="file" id="imagen" name="imagen"
+            <input type="url" id="imagen_url" name="imagen_url"
                    class="form-control form-control-touch mb-1"
-                   accept="image/jpeg,image/png,image/webp">
-            <p class="text-muted small mb-2">JPG, PNG o WebP · máx. 2 MB</p>
-            <div id="preview-img" class="text-center d-none">
+                   placeholder="https://..."
+                   value="<?= htmlspecialchars($_POST['imagen_url'] ?? '') ?>">
+            <p class="text-muted small mb-2">Pegá la URL pública de la imagen</p>
+            <div id="preview-img" class="text-center d-none mt-2">
                 <img id="img-prev" src="" alt="Preview"
                      class="rounded-3 shadow-sm"
                      style="max-height:160px;max-width:100%;object-fit:contain">
@@ -298,17 +293,17 @@ function actualizarCuotaPreview() {
 inpMontoCuota.addEventListener('input', actualizarCuotaPreview);
 selCuotas.addEventListener('input', actualizarCuotaPreview);
 
-// Preview de imagen con FileReader
-document.getElementById('imagen').addEventListener('change', function() {
-    const file = this.files[0];
+// Preview de imagen desde URL
+document.getElementById('imagen_url').addEventListener('input', function() {
+    const url  = this.value.trim();
     const wrap = document.getElementById('preview-img');
     const img  = document.getElementById('img-prev');
-    if (file) {
-        const reader = new FileReader();
-        reader.onload = e => { img.src = e.target.result; wrap.classList.remove('d-none'); };
-        reader.readAsDataURL(file);
+    if (url) {
+        img.src = url;
+        wrap.classList.remove('d-none');
     } else {
         wrap.classList.add('d-none');
+        img.src = '';
     }
 });
 </script>

@@ -95,25 +95,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $montoCuota = (float)($_POST['monto_cuota'] ?? 0);
         $pF         = round($cuotas * $montoCuota, 2);
         $stockMin = max(1, (int)($_POST['stock_minimo'] ?? 1));
-        // Imagen: conservar la existente por defecto
-        $imgUrl = $art['imagen_url'];
-
-        // Si se marcó "eliminar imagen"
-        if (!empty($_POST['eliminar_imagen'])) {
-            eliminarImagenArticulo($imgUrl);
-            $imgUrl = null;
-        }
-
-        // Si se subió un nuevo archivo, reemplaza la imagen anterior
-        if (!empty($_FILES['imagen']['name'])) {
-            $nuevaUrl = subirImagenArticulo($_FILES['imagen']);
-            if ($nuevaUrl === false) {
-                $errors[] = 'La imagen no pudo subirse. Verificá que sea JPG, PNG o WebP y menor a 2 MB.';
-            } else {
-                eliminarImagenArticulo($imgUrl);
-                $imgUrl = $nuevaUrl;
-            }
-        }
+        // Imagen: URL externa
+        $imgUrl = trim($_POST['imagen_url'] ?? '') ?: null;
 
         if (!$nombre)         $errors[] = 'El nombre es obligatorio.';
         if (!$catId)          $errors[] = 'Seleccioná una categoría.';
@@ -260,7 +243,7 @@ $csrfToken = csrfToken();
     </div>
 
     <!-- ── EDITAR DATOS ──────────────────────────────────────── -->
-    <form method="POST" enctype="multipart/form-data" novalidate>
+    <form method="POST" novalidate>
         <input type="hidden" name="csrf_token" value="<?= $csrfToken ?>">
 
         <div class="venta-form rounded-4 p-3 shadow-sm mb-3">
@@ -356,38 +339,21 @@ $csrfToken = csrfToken();
                        min="1" inputmode="numeric">
             </div>
 
-            <!-- Imagen: subida de archivo -->
+            <!-- Imagen: URL externa -->
             <div class="mb-1">
                 <label class="form-label small fw-medium mb-1">Imagen del artículo</label>
-
-                <?php if (!empty($art['imagen_url'])): ?>
-                <div id="preview-img" class="text-center mb-2">
-                    <img id="img-prev"
-                         src="<?= htmlspecialchars($art['imagen_url']) ?>"
-                         alt="Imagen actual"
-                         class="rounded-3 shadow-sm"
-                         style="max-height:160px;max-width:100%;object-fit:contain">
-                    <p class="text-muted small mt-1 mb-1">Imagen actual</p>
-                </div>
-                <div class="form-check mb-2">
-                    <input class="form-check-input" type="checkbox"
-                           id="eliminar_imagen" name="eliminar_imagen" value="1">
-                    <label class="form-check-label small text-danger" for="eliminar_imagen">
-                        Eliminar imagen actual
-                    </label>
-                </div>
-                <?php else: ?>
-                <div id="preview-img" class="text-center d-none mb-2">
-                    <img id="img-prev" src="" alt="Preview"
-                         class="rounded-3 shadow-sm"
-                         style="max-height:160px;max-width:100%;object-fit:contain">
-                </div>
-                <?php endif; ?>
-
-                <input type="file" id="imagen" name="imagen"
+                <input type="url" id="imagen_url" name="imagen_url"
                        class="form-control form-control-touch mb-1"
-                       accept="image/jpeg,image/png,image/webp">
-                <p class="text-muted small mb-0">JPG, PNG o WebP · máx. 2 MB</p>
+                       placeholder="https://..."
+                       value="<?= htmlspecialchars($art['imagen_url'] ?? '') ?>">
+                <p class="text-muted small mb-2">Pegá la URL pública de la imagen</p>
+                <div id="preview-img" class="text-center <?= !empty($art['imagen_url']) ? '' : 'd-none' ?> mt-1">
+                    <img id="img-prev"
+                         src="<?= htmlspecialchars($art['imagen_url'] ?? '') ?>"
+                         alt="Preview"
+                         class="rounded-3 shadow-sm"
+                         style="max-height:160px;max-width:100%;object-fit:contain">
+                </div>
             </div>
         </div>
 
@@ -473,15 +439,17 @@ function actualizarTipoAjuste() {
 }
 selTipo.addEventListener('change', actualizarTipoAjuste);
 
-// Preview de imagen con FileReader
-document.getElementById('imagen').addEventListener('change', function () {
-    const file = this.files[0];
+// Preview de imagen desde URL
+document.getElementById('imagen_url').addEventListener('input', function() {
+    const url  = this.value.trim();
     const wrap = document.getElementById('preview-img');
     const img  = document.getElementById('img-prev');
-    if (file) {
-        const reader = new FileReader();
-        reader.onload = e => { img.src = e.target.result; wrap.classList.remove('d-none'); };
-        reader.readAsDataURL(file);
+    if (url) {
+        img.src = url;
+        wrap.classList.remove('d-none');
+    } else {
+        wrap.classList.add('d-none');
+        img.src = '';
     }
 });
 </script>
