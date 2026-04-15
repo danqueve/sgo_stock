@@ -33,8 +33,8 @@ if ($id <= 0) {
 switch ($accion) {
     case 'desactivar':
         try {
-            // Soft delete: marcar como inactivo
-            $stmt = $pdo->prepare('UPDATE articulos SET activo = 0 WHERE id = ?');
+            // Soft delete: marcar inactivo y liberar código para reutilización
+            $stmt = $pdo->prepare('UPDATE articulos SET activo = 0, codigo = NULL WHERE id = ?');
             $stmt->execute([$id]);
 
             if ($stmt->rowCount() > 0) {
