@@ -111,18 +111,31 @@ define('UPLOAD_MAX_BYTES', 2 * 1024 * 1024); // 2 MB
 
 /**
  * Valida y guarda la imagen de un artículo subida vía $_FILES.
+ * Usa getimagesize() para verificar el contenido real del archivo,
+ * más confiable que finfo en distintos entornos de hosting.
  * Retorna la URL pública del archivo o false si falla.
  */
 function subirImagenArticulo(array $file): string|false {
     if ($file['error'] !== UPLOAD_ERR_OK) return false;
     if ($file['size'] > UPLOAD_MAX_BYTES) return false;
 
-    $finfo = new finfo(FILEINFO_MIME_TYPE);
-    $mime  = $finfo->file($file['tmp_name']);
-    $exts  = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'];
-    if (!isset($exts[$mime])) return false;
+    // Verificar contenido real del archivo (no depende de finfo ni magic DB)
+    $info = @getimagesize($file['tmp_name']);
+    if (!$info) return false;
 
-    $filename = uniqid('art_', true) . '.' . $exts[$mime];
+    $extMap = [
+        IMAGETYPE_JPEG => 'jpg',
+        IMAGETYPE_PNG  => 'png',
+        IMAGETYPE_WEBP => 'webp',
+    ];
+    if (!isset($extMap[$info[2]])) return false;
+
+    // Crear directorio si no existe (primera vez en VPS)
+    if (!is_dir(UPLOAD_DIR)) {
+        mkdir(UPLOAD_DIR, 0755, true);
+    }
+
+    $filename = uniqid('art_', true) . '.' . $extMap[$info[2]];
     if (!move_uploaded_file($file['tmp_name'], UPLOAD_DIR . $filename)) return false;
 
     return UPLOAD_URL . $filename;
