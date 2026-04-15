@@ -116,27 +116,57 @@ define('UPLOAD_MAX_BYTES', 2 * 1024 * 1024); // 2 MB
  * Retorna la URL pública del archivo o false si falla.
  */
 function subirImagenArticulo(array $file): string|false {
-    if ($file['error'] !== UPLOAD_ERR_OK) return false;
-    if ($file['size'] > UPLOAD_MAX_BYTES) return false;
+    $errores = [
+        1 => 'UPLOAD_ERR_INI_SIZE',
+        2 => 'UPLOAD_ERR_FORM_SIZE',
+        3 => 'UPLOAD_ERR_PARTIAL',
+        4 => 'UPLOAD_ERR_NO_FILE',
+        6 => 'UPLOAD_ERR_NO_TMP_DIR',
+        7 => 'UPLOAD_ERR_CANT_WRITE',
+    ];
+    if ($file['error'] !== UPLOAD_ERR_OK) {
+        $desc = $errores[$file['error']] ?? 'DESCONOCIDO';
+        error_log("[IMG_UPLOAD] FALLO paso 1 — error_code={$file['error']} ({$desc})");
+        $GLOBALS['_upload_debug'] = "error_php={$file['error']}({$desc})";
+        return false;
+    }
+    if ($file['size'] > UPLOAD_MAX_BYTES) {
+        error_log("[IMG_UPLOAD] FALLO paso 2 — size={$file['size']} max=" . UPLOAD_MAX_BYTES);
+        $GLOBALS['_upload_debug'] = "size={$file['size']} supera max=" . UPLOAD_MAX_BYTES;
+        return false;
+    }
 
-    // Verificar contenido real del archivo (no depende de finfo ni magic DB)
-    $info = @getimagesize($file['tmp_name']);
-    if (!$info) return false;
+    $tmp = $file['tmp_name'];
+    $readable = is_readable($tmp);
+    $info = $readable ? @getimagesize($tmp) : false;
+    if (!$info) {
+        error_log("[IMG_UPLOAD] FALLO paso 3 — tmp={$tmp} readable=" . ($readable ? 'si' : 'no') . " getimagesize=" . ($info ? 'ok' : 'false'));
+        $GLOBALS['_upload_debug'] = "tmp={$tmp} readable=" . ($readable ? 'si' : 'no') . " getimagesize=false";
+        return false;
+    }
 
     $extMap = [
         IMAGETYPE_JPEG => 'jpg',
         IMAGETYPE_PNG  => 'png',
         IMAGETYPE_WEBP => 'webp',
     ];
-    if (!isset($extMap[$info[2]])) return false;
+    if (!isset($extMap[$info[2]])) {
+        error_log("[IMG_UPLOAD] FALLO paso 4 — tipo_imagen={$info[2]} no permitido");
+        $GLOBALS['_upload_debug'] = "tipo_imagen={$info[2]} no permitido";
+        return false;
+    }
 
-    // Crear directorio si no existe (primera vez en VPS)
     if (!is_dir(UPLOAD_DIR)) {
         mkdir(UPLOAD_DIR, 0755, true);
     }
 
     $filename = uniqid('art_', true) . '.' . $extMap[$info[2]];
-    if (!move_uploaded_file($file['tmp_name'], UPLOAD_DIR . $filename)) return false;
+    $destino  = UPLOAD_DIR . $filename;
+    if (!move_uploaded_file($tmp, $destino)) {
+        error_log("[IMG_UPLOAD] FALLO paso 5 — move_uploaded_file destino={$destino} dir_existe=" . (is_dir(UPLOAD_DIR) ? 'si' : 'no') . " dir_writable=" . (is_writable(UPLOAD_DIR) ? 'si' : 'no'));
+        $GLOBALS['_upload_debug'] = "move_failed destino={$destino} dir_writable=" . (is_writable(UPLOAD_DIR) ? 'si' : 'no');
+        return false;
+    }
 
     return UPLOAD_URL . $filename;
 }

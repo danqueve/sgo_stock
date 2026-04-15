@@ -108,7 +108,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!empty($_FILES['imagen']['name'])) {
             $nuevaUrl = subirImagenArticulo($_FILES['imagen']);
             if ($nuevaUrl === false) {
-                $errors[] = 'La imagen no pudo subirse. Verificá que sea JPG, PNG o WebP y menor a 2 MB.';
+                $dbg = $GLOBALS['_upload_debug'] ?? 'sin_detalle';
+                $errors[] = "La imagen no pudo subirse. [debug: {$dbg}]";
             } else {
                 eliminarImagenArticulo($imgUrl);
                 $imgUrl = $nuevaUrl;
