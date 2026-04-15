@@ -10,3 +10,9 @@ vendor/
 # OS files
 Thumbs.db
 .DS_Store
+
+# Imágenes subidas por usuarios (generadas en runtime)
+assets/uploads/articulos/*.jpg
+assets/uploads/articulos/*.jpeg
+assets/uploads/articulos/*.png
+assets/uploads/articulos/*.webp
