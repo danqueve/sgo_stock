@@ -134,11 +134,11 @@ function subirImagenArticulo(array $file): string|false {
     }
 
     $filename = uniqid('art_', true) . '.' . $extMap[$info[2]];
-    $destino  = realpath(UPLOAD_DIR) . DIRECTORY_SEPARATOR . $filename;
+    $destino  = UPLOAD_DIR . $filename;
     if (!move_uploaded_file($file['tmp_name'], $destino)) return false;
 
-    // Asegurar que el archivo sea legible por el servidor web
-    chmod($destino, 0644);
+    // Garantizar que el archivo sea legible por el servidor web
+    @chmod($destino, 0644);
 
     return UPLOAD_URL . $filename;
 }

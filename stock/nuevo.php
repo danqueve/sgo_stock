@@ -22,9 +22,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $desc       = trim($_POST['descripcion'] ?? '');
         $catId      = (int)($_POST['categoria_id'] ?? 0);
         $codigo     = trim($_POST['codigo']     ?? '') ?: null;
-        $pContado   = str_replace(['.', ','], ['', '.'], $_POST['precio_contado'] ?? '0');
+        $pContado   = (float)($_POST['precio_contado'] ?? 0);
         $cuotas     = max(1, (int)($_POST['cuotas'] ?? 1));
-        $montoCuota = str_replace(['.', ','], ['', '.'], $_POST['monto_cuota'] ?? '0');
+        $montoCuota = (float)($_POST['monto_cuota'] ?? 0);
         $pFinanc    = round($cuotas * $montoCuota, 2);
         $stock      = (int)($_POST['stock_actual']  ?? 0);
         $stockMin   = max(1, (int)($_POST['stock_minimo'] ?? 1));

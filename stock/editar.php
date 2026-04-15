@@ -90,10 +90,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $desc     = trim($_POST['descripcion'] ?? '');
         $catId    = (int)($_POST['categoria_id'] ?? 0);
         $codigo   = trim($_POST['codigo']     ?? '') ?: null;
-        $pC         = str_replace(['.', ','], ['', '.'], $_POST['precio_contado'] ?? '0');
+        $pC         = (float)($_POST['precio_contado'] ?? 0);
         $cuotas     = max(1, (int)($_POST['cuotas'] ?? 1));
-        $montoCuota = str_replace(['.', ','], ['', '.'], $_POST['monto_cuota']  ?? '0');
-        $pF         = round($cuotas * (float)$montoCuota, 2);
+        $montoCuota = (float)($_POST['monto_cuota'] ?? 0);
+        $pF         = round($cuotas * $montoCuota, 2);
         $stockMin = max(1, (int)($_POST['stock_minimo'] ?? 1));
         // Imagen: conservar la existente por defecto
         $imgUrl = $art['imagen_url'];
@@ -146,7 +146,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'descripcion'      => $desc,
             'categoria_id'     => $catId,
             'codigo'           => $codigo,
-            'precio_contado'   => $pC,
+            'precio_contado'   => number_format($pC, 2, '.', ''),
             'precio_financiado'=> $pF,
             'cuotas'           => $cuotas,
             'monto_cuota_edit' => $montoCuota,

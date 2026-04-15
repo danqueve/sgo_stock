@@ -1,5 +1,5 @@
-# Bloquear ejecución de scripts PHP en este directorio
-<FilesMatch "\.php[s57]?$">
+# Bloquear ejecución de scripts en este directorio
+<FilesMatch "\.(php|php3|php4|php5|php7|phtml|phar)$">
     Deny from all
 </FilesMatch>
 Options -Indexes -ExecCGI
