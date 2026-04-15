@@ -140,7 +140,8 @@ function subirImagenArticulo(array $file): string|false {
     // Garantizar que el archivo sea legible por el servidor web
     @chmod($destino, 0644);
 
-    return UPLOAD_URL . $filename;
+    // Ruta relativa: funciona con cualquier dominio/IP
+    return '/assets/uploads/articulos/' . $filename;
 }
 
 /**
@@ -148,7 +149,10 @@ function subirImagenArticulo(array $file): string|false {
  */
 function eliminarImagenArticulo(?string $url): void {
     if (!$url) return;
-    if (strpos($url, UPLOAD_URL) !== 0) return;
+    // Acepta tanto rutas relativas nuevas como URLs absolutas antiguas
+    $esRelativa = strpos($url, '/assets/uploads/articulos/') === 0;
+    $esAbsoluta = strpos($url, UPLOAD_URL) === 0;
+    if (!$esRelativa && !$esAbsoluta) return;
     $path = UPLOAD_DIR . basename($url);
     if (is_file($path)) @unlink($path);
 }
